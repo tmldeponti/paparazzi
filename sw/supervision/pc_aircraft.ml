@@ -40,6 +40,7 @@ let aircraft_sample = fun name ac_id ->
     [ "name", name;
       "ac_id", ac_id;
       "airframe", "airframes/examples/microjet.xml";
+      "parameters","";
       "radio", "radios/cockpitSX.xml";
       "telemetry", "telemetry/default_fixedwing.xml";
       "flight_plan", "flight_plans/basic.xml";
@@ -179,6 +180,7 @@ let save_callback = fun ?user_save gui ac_combo tree tree_modules () ->
           "settings", Gtk_tools.tree_values ~only_checked:false tree;
           "settings_modules", Gtk_tools.tree_values ~only_checked:false tree_modules;
           "gui_color", color ] in
+      let attribs = if gui#label_parameters#text = "" then attribs else attribs @ ["parameters", gui#label_parameters#text ] in
       let attribs = if gui#label_release#text = "" then attribs else attribs @ ["release", gui#label_release#text ] in
       let aircraft = Xml.Element ("aircraft", attribs, []) in
       begin try Hashtbl.remove Utils.aircrafts ac_name with _ -> () end;
@@ -316,6 +318,7 @@ let ac_combo_handler = fun gui (ac_combo:Gtk_tools.combo) target_combo flash_com
   (* Link AC conf with labels and buttons *)
   let ac_files =
     [ "airframe", "airframes", Label gui#label_airframe, Some gui#button_browse_airframe, Some gui#button_edit_airframe, edit, None;
+      "parameters", "parameters", Label gui#label_parameters, Some gui#button_browse_parameters, Some gui#button_edit_parameters, edit, None;
       "flight_plan", "flight_plans", Label gui#label_flight_plan, Some gui#button_browse_flight_plan, Some gui#button_edit_flight_plan, gcs_or_edit, None;
       "settings", "settings", Tree tree_set, Some gui#button_browse_settings, Some gui#button_edit_settings, edit, Some gui#button_remove_settings;
       "settings_modules", "settings", Tree tree_set_mod, None, None, (fun _ -> ()), None;
@@ -335,6 +338,7 @@ let ac_combo_handler = fun gui (ac_combo:Gtk_tools.combo) target_combo flash_com
       with
       | Xml.File_not_found x ->
           gui#label_airframe#set_text "";
+          gui#label_parameters#set_text "";
           gui#button_clean#misc#set_sensitive false;
           gui#button_build#misc#set_sensitive false;
           (Gtk_tools.combo_widget target_combo)#misc#set_sensitive false;
