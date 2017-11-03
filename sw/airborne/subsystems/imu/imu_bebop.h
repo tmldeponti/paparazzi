@@ -68,6 +68,8 @@
 #define IMU_ACCEL_Z_SENS_DEN MPU60X0_ACCEL_SENS_FRAC[BEBOP_ACCEL_RANGE][1]
 #endif
 
+extern float imu_bebop_pitch_offset;
+extern bool imu_bebop_factory_calib;
 
 /** Everything that is in the bebop IMU */
 struct ImuBebop {
@@ -76,6 +78,10 @@ struct ImuBebop {
 };
 
 extern struct ImuBebop imu_bebop;
+
+extern float imu_bebop_filtered_temperature;
+extern double gyro_x_sfe, gyro_y_sfe, gyro_z_sfe;
+extern double accel_x_sfe, accel_y_sfe, accel_z_sfe;
 
 extern void imu_bebop_init(void);
 extern void imu_bebop_periodic(void);

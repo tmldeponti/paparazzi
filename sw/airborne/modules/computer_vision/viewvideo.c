@@ -32,6 +32,29 @@
 // Own header
 #include "modules/computer_vision/viewvideo.h"
 #include "modules/computer_vision/cv.h"
+#include "generated/airframe.h"
+
+#if defined BOARD_BEBOP && !defined USE_H264
+#define USE_H264 FALSE
+#endif
+PRINT_CONFIG_VAR(USE_H264)
+
+#if USE_H264
+#ifndef VIEWVIDEO_H264_BITRATE
+#define VIEWVIDEO_H264_BITRATE 0.5
+#endif
+PRINT_CONFIG_VAR(VIEWVIDEO_H264_BITRATE)
+#endif
+
+
+#if defined BOARD_BEBOP && !defined USE_OPENGL
+#define USE_OPENGL FALSE
+#endif
+PRINT_CONFIG_VAR(USE_OPENGL)
+
+#if USE_H264
+#include "modules/computer_vision/lib/encoding/P7_H264.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,6 +68,11 @@
 #include "lib/encoding/jpeg.h"
 #include "lib/encoding/rtp.h"
 #include "udp_socket.h"
+#include "generated/airframe.h"
+
+#if USE_OPENGL
+#include "modules/computer_vision/lib/opengl/opengl.h"
+#endif
 
 #include BOARD_CONFIG
 
@@ -60,11 +88,31 @@ PRINT_CONFIG_VAR(VIEWVIDEO_DOWNSIZE_FACTOR)
 #endif
 PRINT_CONFIG_VAR(VIEWVIDEO_QUALITY_FACTOR)
 
+// RTP time increment at 90kHz (default: 0 for automatic)
+#ifndef VIEWVIDEO_RTP_TIME_INC
+#define VIEWVIDEO_RTP_TIME_INC 0
+#endif
+PRINT_CONFIG_VAR(VIEWVIDEO_RTP_TIME_INC)
+
 // Define stream framerate
 #ifndef VIEWVIDEO_FPS
 #define VIEWVIDEO_FPS 5
 #endif
 PRINT_CONFIG_VAR(VIEWVIDEO_FPS)
+
+// Default image folder
+#ifndef VIEWVIDEO_SHOT_PATH
+#ifdef VIDEO_THREAD_SHOT_PATH
+#define VIEWVIDEO_SHOT_PATH VIDEO_THREAD_SHOT_PATH
+#else
+#ifdef BOARD_BEBOP
+#define VIEWVIDEO_SHOT_PATH /data/ftp/internal_000
+#else
+#define VIEWVIDEO_SHOT_PATH /data/video/images
+#endif
+#endif
+#endif
+PRINT_CONFIG_VAR(VIEWVIDEO_SHOT_PATH)
 
 // Define stream priority
 #ifndef VIEWVIDEO_NICE_LEVEL
@@ -91,7 +139,35 @@ PRINT_CONFIG_MSG("[viewvideo] Using RTP/UDP stream.")
 PRINT_CONFIG_VAR(VIEWVIDEO_USE_RTP)
 #endif
 
+#ifndef VIEWVIDEO_VERBOSE
+#define VIEWVIDEO_VERBOSE 0
+#endif
+
+#ifndef VIEWVIDEO_WRITE_VIDEO
+#define VIEWVIDEO_WRITE_VIDEO 0
+#endif
+
+#ifndef VIEWVIDEO_STREAM
+#define VIEWVIDEO_STREAM 1
+#endif
+
+#ifndef VIEWVIDEO_VIDEO_FILE
+#define VIEWVIDEO_VIDEO_FILE video_file
+#endif
+
+#ifndef VIEWVIDEO_DATETIME_NAME
+#define VIEWVIDEO_DATETIME_NAME 1
+#endif
+
+#if VIEWVIDEO_DATETIME_NAME
+#include <time.h>
+#endif
+
+#define printf_debug    if(VIEWVIDEO_VERBOSE > 0) printf
+
 /* These are defined with configure */
+PRINT_CONFIG_VAR(VIEWVIDEO_CAMERA)
+PRINT_CONFIG_VAR(VIEWVIDEO_CAMERA2)
 PRINT_CONFIG_VAR(VIEWVIDEO_HOST)
 PRINT_CONFIG_VAR(VIEWVIDEO_PORT_OUT)
 PRINT_CONFIG_VAR(VIEWVIDEO_PORT2_OUT)
@@ -106,10 +182,17 @@ struct viewvideo_t viewvideo = {
 #endif
 };
 
+#if USE_H264
+static P7_H264_context_t videoEncoder;
+#endif
+static FILE *video_file;
+bool viewvideo_recording = FALSE;
+
 /**
  * Handles all the video streaming and saving of the image shots
  * This is a separate thread, so it needs to be thread safe!
  */
+#if !USE_H264 || VIEWVIDEO_CAMERA2
 static struct image_t *viewvideo_function(struct UdpSocket *viewvideo_socket, struct image_t *img, uint16_t *rtp_packet_nr, uint32_t *rtp_frame_time)
 {
   // Resize image if needed
@@ -183,14 +266,72 @@ static struct image_t *viewvideo_function(struct UdpSocket *viewvideo_socket, st
   image_free(&img_small);
   return NULL; // No new images were created
 }
+#endif
+
+static struct image_t *viewvideo_function_h264(struct UdpSocket *socket, struct image_t *img)
+{
+  int32_t h264BufferIndex, size;
+  uint8_t* h264Buffer;
+  struct image_t releaseImg;
+  if(viewvideo_recording && video_file == NULL){
+    viewvideo_start_recording();
+  }
+  if(!viewvideo_recording && video_file != NULL){
+    viewvideo_stop_recording();
+  }
+  if (viewvideo.is_streaming) {
+    P7_H264_releaseInputBuffer(&videoEncoder, img->buf_idx);
+
+    while ((h264BufferIndex = P7_H264_find_FreeBuffer(videoEncoder.inputBuffers, BUFFER_TOBE_RELEASED, videoEncoder.numInputBuffers)) != -1){
+      releaseImg.buf_idx = h264BufferIndex;
+      videoEncoder.inputBuffers[h264BufferIndex].status = BUFFER_FREE;
+      v4l2_image_free(VIEWVIDEO_CAMERA.thread.dev, &releaseImg);
+    }
+
+    while (!P7_H264_getOutputBuffer(&videoEncoder, &h264BufferIndex))
+    {
+
+      h264Buffer = P7_H264_bufferIndex2OutputPointer(&videoEncoder, h264BufferIndex);
+      size = P7_H264_bufferIndex2OutputSize(&videoEncoder, h264BufferIndex);
+
+
+      if (size == 0)
+        ;//fprintf(stderr, "%s:%d warning, no data to write\n",__FILE__,__LINE__);
+      else {
+        printf_debug("Got frame of size: %d\r\n", size);
+        printf_debug("Byte: %2X %2X %2X %2X %2X\n", h264Buffer[0],h264Buffer[1], h264Buffer[2], h264Buffer[3], h264Buffer[4]);
+#if VIEWVIDEO_STREAM
+        rtp_frame_send_h264(socket, h264Buffer, size);
+#endif
+
+        if(viewvideo_recording && video_file != NULL){
+            fwrite(h264Buffer, size, 1, video_file);
+        }
+      }
+      P7_H264_releaseOutputBuffer(&videoEncoder, h264BufferIndex);
+    }
+  } else {
+    v4l2_image_free(VIEWVIDEO_CAMERA.thread.dev, img);
+  }
+  return NULL; // No new images were created
+}
 
 #ifdef VIEWVIDEO_CAMERA
+#if USE_H264
+static struct image_t *viewvideo_function1(struct image_t *img)
+{
+  static uint16_t rtp_packet_nr = 0;
+  static uint32_t rtp_frame_time = 0;
+  return viewvideo_function_h264(&video_sock1, img, &rtp_packet_nr, &rtp_frame_time);
+}
+#else
 static struct image_t *viewvideo_function1(struct image_t *img)
 {
   static uint16_t rtp_packet_nr = 0;
   static uint32_t rtp_frame_time = 0;
   return viewvideo_function(&video_sock1, img, &rtp_packet_nr, &rtp_frame_time);
 }
+#endif
 #endif
 
 #ifdef VIEWVIDEO_CAMERA2
@@ -207,8 +348,7 @@ static struct image_t *viewvideo_function2(struct image_t *img)
  */
 void viewvideo_init(void)
 {
-  viewvideo.is_streaming = true;
-
+  viewvideo.is_streaming = VIEWVIDEO_STREAM;
 #if VIEWVIDEO_USE_NETCAT
   // Create an Netcat receiver file for the streaming
   sprintf(save_name, "%s/netcat-recv.sh", STRINGIFY(VIEWVIDEO_SHOT_PATH));
@@ -226,9 +366,66 @@ void viewvideo_init(void)
     printf("[viewvideo] Failed to create netcat receiver file.\n");
   }
 #else
+#ifdef VIEWVIDEO_CAMERA
+#if !USE_H264
+  struct video_listener *listener1 = cv_add_to_device_async(&VIEWVIDEO_CAMERA, viewvideo_function1,
+                                     VIEWVIDEO_NICE_LEVEL);
+  listener1->maximum_fps = VIEWVIDEO_FPS;
+  fprintf(stderr, "[viewvideo] Added asynchronous video streamer lister for CAMERA1\n");
+#else
+  struct video_listener *listener1 = cv_add_to_device(&VIEWVIDEO_CAMERA, viewvideo_function1);
+  listener1->maximum_fps = 0;
+  fprintf(stderr, "[viewvideo] Added synchronous video streamer lister for CAMERA1\n");
+#endif
+#endif
+
+#ifdef VIEWVIDEO_CAMERA2
+  struct video_listener *listener2 = cv_add_to_device(&VIEWVIDEO_CAMERA2, viewvideo_function2);
+  listener2->maximum_fps = 0;
+  fprintf(stderr, "[viewvideo] Added synchronous video streamer lister for CAMERA2\n");
+#endif
+
+#if USE_H264
+  videoEncoder.inputType = H264ENC_YUV422_INTERLEAVED_UYVY;
+  videoEncoder.bitRate   = (uint32_t) (VIEWVIDEO_H264_BITRATE * 1024 * 1024); // in Mbps
+  videoEncoder.frameRate = VIEWVIDEO_FPS;
+  videoEncoder.intraRate = 0;//VIEWVIDEO_FPS;
+  P7_H264_open(&videoEncoder, VIEWVIDEO_CAMERA.thread.dev);
+  char save_name[512];
+  // Create an SDP file for the streaming
+  sprintf(save_name, "%s/stream.sdp", STRINGIFY(VIEWVIDEO_SHOT_PATH));
+  FILE *fp = fopen(save_name, "w");
+  if (fp != NULL) {
+    fprintf(fp, "v=0\n");
+    fprintf(fp, "m=video %d RTP/AVP 96\n", (int)(VIEWVIDEO_PORT_OUT));
+    fprintf(fp, "a=rtpmap:96 H264\n");
+    fprintf(fp, "a=framerate:%d\n", (int)(VIEWVIDEO_FPS));
+    fprintf(fp, "c=IN IP4 0.0.0.0\n");
+    fclose(fp);
+  } else {
+    printf_debug("[viewvideo] Failed to create SDP file.\n");
+  }
+#ifdef VIEWVIDEO_CAMERA2
+  char save_name2[512];
+  // Create an SDP file for the streaming
+  sprintf(save_name2, "%s/stream2.sdp", STRINGIFY(VIEWVIDEO_SHOT_PATH));
+  FILE *fp2 = fopen(save_name2, "w");
+  if (fp2 != NULL) {
+    fprintf(fp2, "v=0\n");
+    fprintf(fp2, "m=video %d RTP/AVP 26\n", (int)(VIEWVIDEO_PORT2_OUT));
+    fprintf(fp2, "c=IN IP4 0.0.0.0\n");
+    fclose(fp2);
+  } else {
+    printf_debug("[viewvideo] Failed to create stream #2 SDP file.\n");
+  }
+#endif
+#endif
   // Open udp socket
 #ifdef VIEWVIDEO_CAMERA
   if (udp_socket_create(&video_sock1, STRINGIFY(VIEWVIDEO_HOST), VIEWVIDEO_PORT_OUT, -1, VIEWVIDEO_BROADCAST)) {
+#if USE_H264
+    udp_socket_set_sendbuf(&video_sock1, 1042 * 1024);
+#endif
     printf("[viewvideo]: failed to open view video socket, HOST=%s, port=%d\n", STRINGIFY(VIEWVIDEO_HOST),
            VIEWVIDEO_PORT_OUT);
   }
@@ -236,6 +433,9 @@ void viewvideo_init(void)
 
 #ifdef VIEWVIDEO_CAMERA2
   if (udp_socket_create(&video_sock2, STRINGIFY(VIEWVIDEO_HOST), VIEWVIDEO_PORT2_OUT, -1, VIEWVIDEO_BROADCAST)) {
+#if USE_H264
+    udp_socket_set_sendbuf(&video_sock1, 1042 * 1024);
+#endif
     printf("[viewvideo]: failed to open view video socket, HOST=%s, port=%d\n", STRINGIFY(VIEWVIDEO_HOST),
            VIEWVIDEO_PORT2_OUT);
   }
@@ -254,3 +454,63 @@ void viewvideo_init(void)
   fprintf(stderr, "[viewvideo] Added asynchronous video streamer listener for CAMERA2 at %u FPS \n", VIEWVIDEO_FPS);
 #endif
 }
+
+/*
+ * Start / Stop recording function of H264 stream
+ */
+
+void viewvideo_start_recording( void ){
+    char video_name[512];
+    uint32_t counter = 0;
+    // Check for available files
+#if VIEWVIDEO_DATETIME_NAME
+  time_t timer;
+  char date_buffer[26];
+  struct tm* tm_info;
+  timer = time(NULL);
+  tm_info = localtime(&timer);
+  strftime(date_buffer, 26, "%Y_%m_%d__%H_%M_%S", tm_info);
+  sprintf(video_name, "%s/%s_%s_%s_%05d.h264", STRINGIFY(VIEWVIDEO_SHOT_PATH), AIRFRAME_NAME, STRINGIFY(VIEWVIDEO_VIDEO_FILE), date_buffer, counter);
+  while ((video_file = fopen(video_name, "r"))) {
+    fclose(video_file);
+    counter++;
+    sprintf(video_name, "%s/%s_%s_%s_%05d.h264", STRINGIFY(VIEWVIDEO_SHOT_PATH), AIRFRAME_NAME, STRINGIFY(VIEWVIDEO_VIDEO_FILE), date_buffer, counter);
+  }
+#else
+  sprintf(video_name, "%s/%s_%s.h264", STRINGIFY(VIEWVIDEO_SHOT_PATH), AIRFRAME_NAME, STRINGIFY(VIEWVIDEO_VIDEO_FILE));
+  while ((video_file = fopen(video_name, "r"))) {
+    fclose(video_file);
+    counter++;
+    sprintf(video_name, "%s/%s_%s_%05d.h264", STRINGIFY(VIEWVIDEO_SHOT_PATH), AIRFRAME_NAME, STRINGIFY(VIEWVIDEO_VIDEO_FILE), counter);
+  }
+#endif
+    int tries       = 0;
+    int maxtries    = 5;
+    do {
+        video_file = fopen(video_name, "w");
+        tries++;
+    } while(video_file == NULL && tries < maxtries);
+    if(video_file == NULL)
+    {
+        printf("[viewvideo] Failed to create .h264 file.\n");
+        viewvideo_recording = false;
+    }
+    else{
+        viewvideo_recording = true;
+#if !VIEWVIDEO_STREAM
+        viewvideo.is_streaming = true;
+#endif
+    }
+}
+
+void viewvideo_stop_recording( void ){
+    if(video_file){
+        fclose(video_file);
+    }
+    video_file          = NULL;
+    viewvideo_recording = false;
+#if !VIEWVIDEO_STREAM
+        viewvideo.is_streaming = false;
+#endif
+}
+

@@ -27,4 +27,7 @@
 	url = https://github.com/tudelft/opencv_bebop.git
 [submodule "sw/ext/TRICAL"]
 	path = sw/ext/TRICAL
-	url = https://github.com/sfwa/TRICAL.git
+	url = https://github.com/wv-tud/TRICAL.git
+[submodule "sw/ext/flyingrobotcommander"]
+	path = sw/ext/flyingrobotcommander
+	url = https://github.com/paparazzi/flyingrobotcommander

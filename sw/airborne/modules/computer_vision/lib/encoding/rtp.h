@@ -22,7 +22,7 @@
 /**
  * @file modules/computer_vision/lib/encoding/rtp.h
  *
- * Encodes a video stream with RTP Format 26 (Motion JPEG)
+ * Encodes a vide stream with RTP format 26 (MJPEG) or 96 (H264)
  */
 
 #ifndef _CV_ENCODING_RTP_H
@@ -34,6 +34,7 @@
 
 void rtp_frame_send(struct UdpSocket *udp, struct image_t *img, uint8_t format_code, uint8_t quality_code,
                     uint8_t has_dri_header, float average_frame_rate, uint16_t *packet_number, uint32_t *rtp_time_counter);
+void rtp_frame_send_h264(struct UdpSocket *udp, uint8_t *buf, uint32_t len);
 void rtp_frame_test(struct UdpSocket *udp);
 
 #endif /* _CV_ENCODING_RTP_H */

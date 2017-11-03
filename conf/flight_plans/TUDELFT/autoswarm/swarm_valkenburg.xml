@@ -1,0 +1,254 @@
+<!DOCTYPE flight_plan SYSTEM "../../flight_plan.dtd">
+
+<!-- Valkenburg 52.1675803	4.4122477 -->
+<flight_plan alt="2.5" ground_alt="0.0" lat0="52.1675803" lon0="4.4122477" max_dist_from_home="50" name="UKF Magnetometer Calibration test" security_height="1.0">
+  <header>	
+    #include "autopilot.h"
+    #include "subsystems/datalink/datalink.h"
+    #include "subsystems/electrical.h"
+    #include "subsystems/radio_control.h"
+    #include "subsystems/ahrs/ahrs_aligner.h"
+    #include "generated/modules.h"
+  </header>
+  <waypoints>
+    <waypoint name="HOME"   x="0.0" y="0.0"/>
+    <waypoint name="TD"     x="0.0" y="0.0"/>
+    <waypoint name="STDBY"  x="0.0" y="0.0"/>
+    <waypoint name="_GOAL"  x="0.0" y="0.0"/>
+    <waypoint name="_CAM"   x="0.0" y="0.0"/>
+    <waypoint name="GLOBAL" lat="52.1675803" lon="4.4122477"/>
+    <waypoint name="_TD"    x="0.0" y="0.0"/>
+    
+    <waypoint name="p1"    x="-5" y="-5"/>	
+    <waypoint name="p2"    x="-5" y="5"/>	
+    <waypoint name="p3"    x="5" y="5"/>
+    <waypoint name="p4"    x="5" y="-5"/>
+    <waypoint name="CAM"   x="0.0" y="0.0"/>
+  </waypoints>
+  <exceptions>
+    <!-- RC-Loss
+    	No RC -->
+    <!-- GPS loss
+    	Not done from flight plan, main.c goes to AP_MODE_FAILSAFE hardcoded -->
+    <!-- Geofence
+	    max_dist_from_home -->
+    <!-- Datalink loss -->
+    <exception cond="(datalink_time > 10 &&
+      !(datalink_time > 15) &&
+      !(IndexOfBlock('Takeoff') > nav_block) &&
+      !(nav_block >= IndexOfBlock('land')) &&
+      (autopilot_in_flight() == true) )" deroute="DatalinkLoss"/>
+    <exception cond="(datalink_time > 20 &&
+      !(IndexOfBlock('Takeoff') > nav_block) &&
+      !(nav_block >= IndexOfBlock('land')) &&
+      (autopilot_in_flight() == true) )" deroute="EmergencyLanding"/>
+    <!-- Battery loss -->
+    <exception cond="(electrical.bat_low &&
+    !(IndexOfBlock('Holding point') > nav_block) &&
+    !(nav_block >= IndexOfBlock('land')) &&
+    (autopilot_in_flight() == true) )" deroute="ComeBackAndLand"/>
+    <exception cond="(electrical.bat_critical &&
+    !(IndexOfBlock('Holding point') > nav_block) &&
+    !(nav_block >= IndexOfBlock('land')) &&
+    (autopilot_in_flight() == true) )" deroute="land here"/>
+  </exceptions>
+  <blocks>
+  	<block name="Re-align">
+      <set var="ins_float_inv.is_aligned" value="0"/>
+      <call_once fun="ahrs_aligner_reset()"/>
+    </block>
+    <block name="Wait GPS">
+        <call_once fun="setSwarmMode(2)"/> <!--  Look towards global -->
+    	<set var="settings_as_extended" value="1"/>
+    	<set var="settings_as_loglo" value="1.0"/>
+    	<set var="settings_as_vmax" value="3.0"/>
+    	<set var="settings_as_circle_radius" value="4.0"/>
+    	<set var="settings_as_e" value="0.06"/> 
+    	<set var="settings_as_separation" value="2.5"/> <!--  2.0m separation -->
+    	<set var="settings_as_global_strength" value="1.0"/> <!--  100% global strength -->
+    	<call_once fun="setGlobalMode(2)"/> <!--  Bucket global field -->
+      <call_once fun="NavKillThrottle()"/>
+      <while cond="!GpsFixValid()"/>
+    </block>
+    <block name="Geo init">
+      <while cond="LessThan(NavBlockTime(), 10)"/>
+      <call_once fun="NavSetGroundReferenceHere()"/>
+    </block>
+    <block name="Holding point">
+      <call_once fun="NavKillThrottle()"/>
+      <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
+    </block>
+    <block name="Start ground calib">
+      <set var="mag_calib_ukf_noise_rms" value="0.1"/> 											<!--  Decrease UKF RMS since we are not flying -->
+      <set var="mag_calib_ukf_full_3x3" value="false"/> 	 									<!--  Enable AHRS feedback -->
+      <set var="mag_calib_ukf_update_every" value="1"/> 										<!--  Update UKF every magnetometer measurements -->
+      <set var="mag_calib_ukf_update_filter" value="true"/> 									<!--  Enable UKF updates -->
+      <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/> 				<!--  Wait until user aborts calibration -->
+    </block>
+    <block name="Start 3x3 ground calib">
+      <set var="ins_float_inv.gains.lb" value="3*INS_INV_LB"/>									<!--  Let AHRS converge towards current magnetometer measurement -->
+      <set var="ins_float_inv.gains.ob" value="INS_INV_OB"/>  									<!--  Keep MAG bias weight -->
+      <attitude pitch="0" roll="0" throttle="0" until="stage_time > 2" vmode="throttle"/>  		<!--  Wait two seconds -->
+      <set var="ins_float_inv.gains.lb" value="0.0"/>											<!--  Mag is now switching to calibrate based on AHRAS so decrease MAG correction weight (MAG should be calibrated based on gyros) -->
+      <set var="ins_float_inv.gains.ob" value="0.0"/> 											<!--  Mag is now switching to calibrate based on AHRAS so decrease MAG bias weight (MAG should be calibrated based on gyros) -->
+      <set var="mag_calib_ukf_noise_rms" value="0.1"/> 											<!--  Decrease UKF RMS since we are not flying -->
+      <set var="mag_calib_ukf_full_3x3" value="true"/> 	 										<!--  Enable AHRS feedback -->
+      <set var="mag_calib_ukf_update_every" value="1"/> 										<!--  Update UKF every magnetometer measurements -->
+      <set var="mag_calib_ukf_update_filter" value="true"/> 									<!--  Enable UKF updates -->
+      <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/> 				<!--  Wait until user aborts calibration -->
+    </block>
+    <block name="Stop ground calib">
+      <set var="mag_calib_ukf_update_filter" value="false"/> 									<!--  Disable UKF updates -->
+      <set var="mag_calib_ukf_noise_rms" value="0.75"/> 										<!--  Increase UKF RMS to prepare for flight -->
+      <set var="mag_calib_ukf_full_3x3" value="false"/> 										<!--  Disable AHRS feedback -->
+      <set var="mag_calib_ukf_update_every" value="25"/>										<!--  Update UKF every 25th magnetometer measurement -->
+      <set var="ins_float_inv.gains.lb" value="INS_INV_LB"/>									<!--  Restore MAG correction weight -->
+      <set var="ins_float_inv.gains.ob" value="INS_INV_OB"/> 									<!--  Restore MAG bias weight -->
+      <deroute block="Holding point"/> 															<!--  Deroute to holding point -->
+    </block>
+    <block name="Start Engine">
+      <call_once fun="NavResurrect()"/>
+      <set var="mag_calib_ukf_full_3x3" value="false"/> 							<!--  Disable AHRS feedback, takeoff can be noisy -->
+      <set var="mag_calib_ukf_update_filter" value="false"/>						<!--  Disable UKF updates, takeoff can be noisy -->
+      <set var="mag_calib_ukf_update_every" value="25"/> 							<!--  Set update rate to every 25th measurement -->
+      <set var="mag_calib_ukf_noise_rms" value="0.75"/> 							<!--  Increase UKF RMS since engines are on -->
+      <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/> 	
+    </block>
+    <block name="Takeoff">
+      <set var="mag_calib_ukf_full_3x3" value="false"/> 							<!--  Disable AHRS feedback during takeoff -->
+      <set var="mag_calib_ukf_update_filter" value="false"/> 						<!--  Disable UKF updates during takeoff -->
+      <set var="mag_calib_ukf_update_every" value="25"/> 							<!--  Set update rate to every 25th measurement -->
+      <call_once fun="file_logger_stop()"/> 										<!--  Stop the file logger if it is running -->
+      <call_once fun="file_logger_start()"/> 										<!--  Start the file logger -->
+      <call_once fun="NavSetAltitudeReferenceHere()"/>
+      <call_once fun="waypoint_set_alt(WP_TD, WaypointAlt(WP_HOME))"/>
+      <call_once fun="NavSetWaypointHere(WP_TD)"/>
+      <stay wp="TD" until="GetPosAlt() > (WaypointAlt(WP_TD) + 0.2)" vmode="climb" climb="nav_climb_vspeed"/>
+      <call_once fun="cv_awb_reset()"/> 											<!--  Reset AWB since we are now viewing more than just grass -->
+      <call_once fun="cv_ae_reset()"/> 												<!--  Reset AE since we are now viewing more than just grass -->
+    </block>
+    <block name="Mag calib">
+      <!--  Prepare -->
+      <call_once fun="NavSetWaypointHere(WP_STDBY)"/>			<!--  Set STDBY waypoint here -->
+      <!--  Set calibration settings for quick calibration -->
+      <set var="mag_calib_ukf_noise_rms" value="0.5"/> 			<!--  Increase UKF RMS since we are now flying -->
+      <set var="mag_calib_ukf_full_3x3" value="false"/> 		<!--  Disable AHRS feedback -->
+      <set var="mag_calib_ukf_update_filter" value="true"/> 	<!--  Enable UKF updates -->
+      <set var="mag_calib_ukf_update_every" value="2"/> 		<!--  Update UKF every 2 magnetometer measurements -->
+      <set var="mag_calib_ukf_autosave" value="true"/> 			<!--  Enable saving of calibration -->
+      <set var="ins_float_inv.gains.lb" value="3*INS_INV_LB"/>	<!--  Mag is being calibrated independantly from AHRS so increase MAG correction weight -->
+      <set var="ins_float_inv.gains.ob" value="INS_INV_OB"/>  	<!--  Mag is being calibrated independantly from AHRS so keep MAG bias weight -->
+	  <!--  Rotate -->
+	  <call_once fun="mag_calib_rotate_toggle( true )"/> 		<!--  Start rotating around body z-axis -->
+	  
+      <stay wp="STDBY" until="stage_time > 2 || !mag_calib_get_rotate_status()"/>  <!--  Stay rotating at STDBY for 2 seconds -->
+      
+      <call_once fun="mag_calib_rotate_toggle( false )"/> 		<!--  Stop rotating around body z-axis -->
+      <set var="mag_calib_ukf_update_filter" value="false"/> 	<!--  Disable UKF updates -->
+      
+      <stay wp="STDBY" until="stage_time > 1"/> 				<!--  Stay still at STDBY for 1 second -->
+      
+      <call_once fun="mag_calib_rotate_toggle( true )"/> 		<!--  Start rotating around body z-axis -->
+      <set var="ins_float_inv.gains.lb" value="0.0"/> 			<!--  Mag is now switching to calibrate based on AHRAS so decrease MAG correction weight (MAG should be calibrated based on gyros) -->
+      <set var="ins_float_inv.gains.ob" value="0.0"/> 			<!--  Mag is now switching to calibrate based on AHRAS so decrease MAG bias weight (MAG should be calibrated based on gyros) -->
+      <set var="mag_calib_ukf_full_3x3" value="true"/> 			<!--  Enable AHRS feedback -->
+      
+      <stay wp="STDBY" until="stage_time > 2 || !mag_calib_get_rotate_status()"/>  <!--  Stay rotating at STDBY for 2 seconds -->
+      
+      <call_once fun="mag_calib_rotate_toggle( false )"/> 		<!--  Stop rotating around body z-axis -->
+      <!--  Set calibration settings for normal flight -->
+      <set var="ins_float_inv.gains.lb" value="INS_INV_LB"/> 	<!--  Restore MAG correction weight -->
+      <set var="ins_float_inv.gains.ob" value="INS_INV_OB"/> 	<!--  Restore MAG bias weight -->
+      <set var="mag_calib_ukf_noise_rms" value="0.75"/> 		<!--  Increase UKF RMS since we will be commencing normal flight -->
+      <set var="mag_calib_ukf_autosave" value="false"/>  		<!--  Disable saving of calibration -->
+      <set var="mag_calib_ukf_update_every" value="10"/> 		<!--  Update UKF every 25th magnetometer measurement -->
+      <set var="mag_calib_ukf_full_3x3" value="true"/> 			<!--  Enable AHRS feedback -->
+      <set var="mag_calib_ukf_update_filter" value="false"/> 	<!--  Disable UKF updates -->
+    </block>
+    <block name="Standby" strip_button="Standby" strip_icon="home.png">
+      <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
+      <stay wp="STDBY"/>
+    </block>
+    <block name="Swarm" strip_button="Swarm" strip_icon="lookfore.png">
+    	<set var="viewvideo_recording" value="TRUE"/>
+		<call_once fun="setSwarmMode(2)"/>
+		<call_once fun="nav_set_heading_towards_waypoint(WP__CAM)"/>
+    	<stay wp="_GOAL"/>
+    </block>
+    <block name="Swarm Home">
+    	<set var="viewvideo_recording" value="FALSE"/>
+    	<exception cond="amIhome()" deroute="land"/>
+		<call_once fun="NavCopyWaypointPositionOnly(WP_GLOBAL, WP__TD)"/>
+		<call_once fun="setGlobalMode(0)"/>
+		<call_once fun="setSwarmMode(1)"/>
+		<call_once fun="nav_set_heading_towards_waypoint(WP__CAM)"/>
+    	<stay wp="_GOAL"/>
+    </block>
+    <block name="land here" strip_button="Land Here" strip_icon="land-right.png">
+      <call_once fun="NavSetWaypointHere(WP_TD)"/>
+      <deroute block="land"/>
+    </block>
+    <block name="land">
+      <set var="mag_calib_ukf_autosave" value="false"/>
+      <go wp="TD"/>
+      <call_once fun="waypoint_set_alt(WP_TD, GetAltRef())"/>
+      <stay wp="TD" vmode="climb" climb="nav_descend_vspeed" until="(GetAltRef() + 0.5) > GetPosAlt()"/>
+    </block>
+    <block name="flare">
+      <exception cond="NavDetectGround()" deroute="landed"/>
+      <exception cond="!nav_is_in_flight()" deroute="landed"/>
+      <call_once fun="NavStartDetectGround()"/>
+      <stay climb="0.5*nav_descend_vspeed" vmode="climb" wp="TD" until="stage_time > 5 && (GetAltRef() + 0.1) > GetPosAlt()"/>
+    </block>
+    <block name="landed">
+      <set var="mag_calib_ukf_update_filter" value="false"/>
+      <call_once fun="file_logger_stop()"/>
+      <call_once fun="NavKillThrottle()"/>
+      <attitude pitch="0" roll="0" throttle="0" until="FALSE" vmode="throttle"/>
+    </block>
+    <block name="ComeBackAndLand">
+      <go wp="HOME"/>
+      <call_once fun="NavSetWaypointHere(WP_TD)"/>
+      <deroute block="land"/>
+    </block>
+    <block name="DatalinkLoss">
+      <call_once fun="NavSetWaypointHere(WP_TD)"/>
+      <stay until="stage_time > 5" wp="TD"/>
+      <deroute block="ComeBackAndLand"/>
+    </block>
+    <block name="EmergencyLanding">
+    	<call_once fun="NavSetWaypointHere(WP_TD)"/>
+    	<stay climb="1*nav_descend_vspeed" vmode="climb" wp="TD" until="stage_time > 5"/>
+    	<attitude pitch="0" roll="0" vmode="climb" climb="2*nav_descend_vspeed"/>
+    	<exception cond="block_time > 10 && (GetAltRef() + 0.1) > GetPosAlt()" deroute="landed"/>
+    </block>
+<block name="circle_cw">
+      <set var="settings_as_attractor" value="2"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="circle_ccw">
+      <set var="settings_as_attractor" value="3"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="bucket">
+      <set var="settings_as_attractor" value="1"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="spread_out">
+      <set var="settings_as_separation" value="settings_as_separation+0.125"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="spread_in">
+      <set var="settings_as_separation" value="settings_as_separation-0.125"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="inc_circle">
+      <set var="settings_as_circle_radius" value="settings_as_circle_radius+0.125"/>
+      <deroute block="Swarm"/>
+    </block>
+    <block name="dec_circle">
+      <set var="settings_as_circle_radius" value="settings_as_circle_radius-0.125"/>
+      <deroute block="Swarm"/>
+    </block>
+  </blocks>
+</flight_plan>
