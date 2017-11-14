@@ -103,6 +103,7 @@ MAVLINK_PROTOCOL_H=$(MAVLINK_DIR)protocol.h
 GEN_HEADERS = $(UBX_PROTOCOL_H) $(MTK_PROTOCOL_H) $(XSENS_PROTOCOL_H) $(ABI_MESSAGES_H) $(MAVLINK_PROTOCOL_H)
 
 all: ground_segment ext lpctools
+	make -C sw/ext/libopengles/lib/arm/
 
 _print_building:
 	@echo "------------------------------------------------------------"
