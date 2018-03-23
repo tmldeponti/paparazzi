@@ -11,7 +11,6 @@
  */
 
 #include "modules/orange_avoider/orange_avoider.h"
-#include "modules/computer_vision/colorfilter.h"
 #include "firmwares/rotorcraft/navigation.h"
 #include "generated/flight_plan.h"
 #include "generated/airframe.h"
@@ -68,12 +67,6 @@ float maxDistance               = 2.25;
 void orange_avoider_init()
 {
   // Initialise the variables of the colorfilter to accept orange
-  color_lum_min = ORANGE_AVOIDER_LUM_MIN;
-  color_lum_max = ORANGE_AVOIDER_LUM_MAX;
-  color_cb_min  = ORANGE_AVOIDER_CB_MIN;
-  color_cb_max  = ORANGE_AVOIDER_CB_MAX;
-  color_cr_min  = ORANGE_AVOIDER_CR_MIN;
-  color_cr_max  = ORANGE_AVOIDER_CR_MAX;
   // Initialise random values
   srand(time(NULL));
   chooseRandomIncrementAvoidance();

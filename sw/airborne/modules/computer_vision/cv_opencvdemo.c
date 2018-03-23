@@ -27,6 +27,9 @@
 #include "modules/computer_vision/cv_opencvdemo.h"
 #include "modules/computer_vision/opencv_example.h"
 
+int color_count = 0;
+
+
 #ifndef OPENCVDEMO_FPS
 #define OPENCVDEMO_FPS 0       ///< Default FPS (zero means run at camera fps)
 #endif

@@ -14,7 +14,6 @@
     <define name="ORANGE_AVOIDER_CB_MIN" value="0-255" description="Minimum CB To select pixel as object"/>
     <define name="ORANGE_AVOIDER_CB_MAX" value="0-255" description="Minimum CB To select pixel as object"/>
   </doc>
-  <depends>cv_colorfilter.xml</depends>
   <header>
     <file name="orange_avoider.h"/>
   </header>

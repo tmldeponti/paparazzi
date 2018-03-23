@@ -26,6 +26,8 @@
 #ifndef CV_OPENCVDEMO_H
 #define CV_OPENCVDEMO_H
 
+extern int color_count;
+
 extern void opencvdemo_init(void);
 
 #endif

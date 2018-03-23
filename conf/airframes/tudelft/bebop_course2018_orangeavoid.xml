@@ -55,8 +55,8 @@
       <define name="CV_AE_AWB_AV" value="1" />
       <define name="CV_AE_AWB_VERBOSE" value="0" />
     </module-->
-    <module name="cv_colorfilter">
-      <define name="COLORFILTER_CAMERA" value="front_camera" />
+    <module name="cv_opencvdemo">
+      <define name="OPENCVDEMO_CAMERA" value="front_camera" />
     </module>
     <module name="orange_avoider" />
     <module name="video_rtp_stream">
