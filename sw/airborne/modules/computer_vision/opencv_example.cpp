@@ -27,6 +27,9 @@
 #include "opencv_example.h"
 
 
+int color_count;
+
+
 
 using namespace std;
 #include <opencv2/core/core.hpp>
@@ -34,26 +37,36 @@ using namespace std;
 using namespace cv;
 #include "opencv_image_functions.h"
 
-int opencv_example(char *img, int width, int height)
+int opencv_example(char *raw_img_data, int width, int height)
 {
   // Create a new image, using the original bebop image.
-  Mat M(height, width, CV_8UC2, img);
+  Mat RAW(height, width, CV_8UC2, raw_img_data);
   Mat image;
-  // If you want a color image, uncomment this line
-//   cvtColor(M, image, CV_YUV2BGR_Y422);
-  // For a grayscale image, use this one
-  cvtColor(M, image, CV_YUV2GRAY_Y422);
 
-  // Blur it, because we can
-//  blur(image, image, Size(5, 5));
+  // Select ONE of the following to convert the RAW camera image: If you want a color image or grayscale
+  cvtColor(RAW, image, CV_YUV2BGR_Y422);
+  //cvtColor(M, image, CV_YUV2GRAY_Y422);
 
-  // Canny edges, only works with grayscale image
-  int edgeThresh = 35;
-  Canny(image, image, edgeThresh, edgeThresh * 3);
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Start your code here
+
+  Mat result;
+  inRange(image, cv::Scalar(0, 0, 128), cv::Scalar(128, 128, 255), result);
+  color_count = countNonZero(result);
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+  // result will be sent to next module (e.g. video streaming)
 
   // Convert back to YUV422, and put it in place of the original image
-  grayscale_opencv_to_yuv422(image, img, width, height);
-//  colorrgb_opencv_to_yuv422(image, img, width, height);
+  grayscale_opencv_to_yuv422(result, raw_img_data, width, height);
+  //colorrgb_opencv_to_yuv422(image, raw_img_data, width, height);
 
   return 0;
 }
