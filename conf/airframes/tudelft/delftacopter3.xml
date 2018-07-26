@@ -46,6 +46,7 @@
       <module name="odroid_outback">
         <configure name="ODROID_OUTBACK_PORT" value="UART4"/>
       </module>
+      <module name="sys_id_chirp"/>
 
       <module name="geo_mag"/>
       <module name="air_data">
