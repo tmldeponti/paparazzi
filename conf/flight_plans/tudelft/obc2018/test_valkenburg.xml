@@ -161,6 +161,8 @@
     </block>
     <block group="land" name="Descend">
       <set value="HB_HOVER" var="dc_hybrid_mode"/>
+      <exception cond="vision_timeout " deroute="Standby"/>
+      <exception cond="!odroid_outback_enable_landing " deroute="Standby"/>      
       <exception cond="12.0 > stateGetPositionEnu_f()->z" deroute="DescendSlow"/>
       <call_once fun="GuidanceVSetRef(stateGetPositionNed_i()->z, 0, 0)"/>
       <stay climb="nav_descend_vspeed" vmode="climb" wp="TD"/>
