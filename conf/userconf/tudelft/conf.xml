@@ -221,6 +221,7 @@
    settings="settings/rotorcraft_basic.xml"
    settings_modules="modules/nav_hybrid_heading.xml modules/digital_cam_video.xml modules/video_capture.xml modules/photogrammetry_calculator.xml modules/air_data.xml modules/geo_mag.xml modules/vision_outback.xml modules/gain_scheduling.xml modules/guidance_indi.xml modules/guidance_delftacopter.xml modules/ins_hff_extended.xml modules/ahrs_int_cmpl_quat.xml modules/stabilization_rate.xml modules/stabilization_int_quat.xml modules/nav_basic_rotorcraft.xml modules/guidance_rotorcraft.xml modules/gps.xml [modules/airspeed_ms45xx_i2c.xml] modules/gps_ubx_ucenter.xml modules/imu_common.xml"
    gui_color="#ffffda86da86"
+   release="c5097c7f9d160b6e4bfd1bd6bbc445adbb059ea7"
   />
   <aircraft
    name="Flappy"

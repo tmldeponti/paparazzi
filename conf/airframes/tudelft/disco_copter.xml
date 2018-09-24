@@ -133,7 +133,7 @@
       <!-- For easier on desk testing transparent_usb, else transparent -->
       <!-- <module name="telemetry" type="transparent_usb"/>--> <!-- FIXME: gives compile error -->
 
-      <module name="telemetry" type="transparent_udp"/>
+      <!--<module name="telemetry" type="transparent_udp"/>-->
 
      <!-------------- ---------------->
       <!-- By adding new kernel drivers to the Disco it is very well possible to
@@ -141,10 +141,10 @@
 
       <!-- E.g. a serial modem via FTDI cable on CHUCK Micro USB 2, testflights performed, all works well -->
       <!-- Possible if one connect other serial devices they present them as ttyACMx devices, if so try UART5 or UART6 -->
-      <!--<module name="telemetry" type="transparent">--><!-- Or use type="xbee_api" for Digi Xbee modems -->
-      <!--  <configure name="MODEM_PORT" value="UART2"/>
+      <module name="telemetry" type="transparent"><!-- Or use type="xbee_api" for Digi Xbee modems -->
+       <configure name="MODEM_PORT" value="UART2"/>
         <configure name="MODEM_BAUD" value="B9600"/>
-      </module>-->
+      </module>
 
       <!-- <module name="extra_pprz_dl"/>--> <!-- e.g. for WiFi *AND* a LongRangeModem -->
 
