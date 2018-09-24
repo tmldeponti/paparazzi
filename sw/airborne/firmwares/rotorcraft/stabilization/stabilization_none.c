@@ -55,7 +55,9 @@ void stabilization_none_enter(void)
 void stabilization_none_run(bool in_flight __attribute__((unused)))
 {
   /* just directly pass rc commands through */
-  stabilization_cmd[COMMAND_ROLL]  = stabilization_none_rc_cmd.p;
-  stabilization_cmd[COMMAND_PITCH] = stabilization_none_rc_cmd.q;
-  stabilization_cmd[COMMAND_YAW]   = stabilization_none_rc_cmd.r;
+	  stabilization_cmd[COMMAND_ELEVATOR]  = stabilization_none_rc_cmd.q;
+	  stabilization_cmd[COMMAND_AILERON] = -stabilization_none_rc_cmd.p;
+	  stabilization_cmd[COMMAND_ROLL]  = stabilization_none_rc_cmd.p;
+	  stabilization_cmd[COMMAND_PITCH] = stabilization_none_rc_cmd.q;
+      stabilization_cmd[COMMAND_YAW]   = stabilization_none_rc_cmd.r;
 }
