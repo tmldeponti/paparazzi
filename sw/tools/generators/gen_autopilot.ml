@@ -467,11 +467,12 @@ let gen_autopilot main_freq xml_file h_dir out_set =
 
 (* Main call *)
 let () =
-  if Array.length Sys.argv <> 4 then
-    failwith (Printf.sprintf "Usage: %s airframe_xml_file out_h_dir out_settings" Sys.argv.(0));
+  if Array.length Sys.argv <> 5 then
+    failwith (Printf.sprintf "Usage: %s airframe_xml_file param_xml_file out_h_dir out_settings" Sys.argv.(0));
   let xml_file = Sys.argv.(1)
-  and h_dir = Sys.argv.(2)
-  and out_set = open_out Sys.argv.(3) in
+  and par_file = Sys.argv.(2)
+  and h_dir = Sys.argv.(3)
+  and out_set = open_out Sys.argv.(4) in
   let (autopilot, ap_freq) = try
     let target = try Some (Sys.getenv "TARGET") with _ -> None in
     Gen_common.get_autopilot_of_airframe ?target (Xml.parse_file xml_file)

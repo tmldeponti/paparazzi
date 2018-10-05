@@ -210,7 +210,7 @@ $(AIRFRAME_H) : $(CONF)/$(AIRFRAME_XML) $(CONF)/$(PARAMETERS_XML) $(CONF_XML) $(
 	$(Q)chmod a+r $@
 	$(Q)cp $(CONF)/airframes/airframe.dtd $(AIRCRAFT_CONF_DIR)/airframes
 	@echo GENERATE autopilots in $(AUTOPILOT_DIR)
-	$(Q)$(GENERATORS)/gen_autopilot.out $(CONF)/$(AIRFRAME_XML) $(AUTOPILOT_DIR) $(SETTINGS_AUTOPILOT)
+	$(Q)$(GENERATORS)/gen_autopilot.out $(CONF)/$(AIRFRAME_XML) $(CONF)/$(PARAMETERS_XML) $(AUTOPILOT_DIR) $(SETTINGS_AUTOPILOT)
 
 $(RADIO_H) : $(CONF)/$(RADIO) $(CONF_XML) $(GENERATORS)/gen_radio.out
 	$(Q)test -d $(AC_GENERATED) || mkdir -p $(AC_GENERATED)
