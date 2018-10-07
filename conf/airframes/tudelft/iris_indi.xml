@@ -25,6 +25,13 @@
     </module>
     <module name="gps" type="ubx_ucenter" />
     <module name="stabilization" type="indi_simple" />
+    <module name="guidance" type="indi">
+      <define name="GUIDANCE_INDI_SPECIFIC_FORCE_GAIN" value="-500"/>
+      <define name="GUIDANCE_INDI_POS_GAIN_XY" value="0.5"/>
+      <define name="GUIDANCE_INDI_POS_GAIN_Z" value="0.5"/>
+      <define name="GUIDANCE_INDI_SPEED_GAIN_XY" value="1.4"/>
+      <define name="GUIDANCE_INDI_SPEED_GAIN_Z" value="1.6"/>
+    </module>
     <module name="ahrs" type="int_cmpl_quat" >
       <define name="AHRS_ICQ_IMU_ID" value="IMU_PX4_ID" />         <!-- Meaning the lsm303 and l3g -->
       <define name="AHRS_ICQ_MAG_ID" value="MAG_HMC58XX_SENDER_ID" />         <!-- Meaning the external hmc-->
@@ -33,7 +40,9 @@
       <define name="AHRS_USE_GPS_HEADING" value="FALSE"/>
 
     </module>
-    <module name="ins" type="extended" />
+    <module name="ins" type="extended">
+      <define name="USE_SONAR" value="true"/>
+    </module>
     <module name="current_sensor">
       <configure name="ADC_CURRENT_SENSOR" value="ADC_3" />
     </module>
@@ -92,6 +101,7 @@
       <define name="HMC58XX_CHAN_Y_SIGN" value="+"/>
       <define name="HMC58XX_CHAN_Z_SIGN" value="+"/>
     </module>
+    <module name="vision_outback"/>
     <!--  <module name="spektrum_soft_bind"/>-->
   </modules>
 
@@ -109,12 +119,13 @@
     <define name="ACCEL_Z_SENS" value="7.45488455799" integer="16"/>
 
     <!--Calibrated outside, based on sw/tools/calibration/calibrate.py -s MAG var/logs/16_12_05__16_32_21.data -vp -->
-    <define name="MAG_X_NEUTRAL" value="105"/>
-    <define name="MAG_Y_NEUTRAL" value="10"/>
-    <define name="MAG_Z_NEUTRAL" value="-23"/>
-    <define name="MAG_X_SENS" value="4.01453293111" integer="16"/>
-    <define name="MAG_Y_SENS" value="3.96379405627" integer="16"/>
-    <define name="MAG_Z_SENS" value="3.92499630895" integer="16"/>
+    <!-- Dalby, Australia -->
+    <define name="MAG_X_NEUTRAL" value="120"/>
+    <define name="MAG_Y_NEUTRAL" value="7"/>
+    <define name="MAG_Z_NEUTRAL" value="-154"/>
+    <define name="MAG_X_SENS" value="3.45991266235" integer="16"/>
+    <define name="MAG_Y_SENS" value="3.41499861695" integer="16"/>
+    <define name="MAG_Z_SENS" value="3.61716434466" integer="16"/>
   </section>
   <commands>
     <axis name="PITCH" failsafe_value="0" />
@@ -165,14 +176,15 @@
     <define name="GRAVITY_HEURISTIC_FACTOR" value="0"/>
   </section>
   <section name="INS" prefix="INS_">
-    <define name="SONAR_MAX_RANGE" value="2.2" />
+    <define name="SONAR_MAX_RANGE" value="5"/>
+    <define name="SONAR_MIN_RANGE" value="0.15"/>
     <define name="SONAR_UPDATE_ON_AGL" value="TRUE" />
   </section>
   <section name="RC_SETPOINT" prefix="STABILIZATION_ATTITUDE_">
     <!-- setpoint limits for attitude stabilization rc flight -->
     <define name="SP_MAX_PHI" value="45" unit="deg" />
     <define name="SP_MAX_THETA" value="45" unit="deg" />
-    <define name="SP_MAX_R" value="300" unit="deg/s" />
+    <define name="SP_MAX_R" value="60" unit="deg/s" />
     <define name="DEADBAND_A" value="0" />
     <define name="DEADBAND_E" value="0" />
     <define name="DEADBAND_R" value="50" />
@@ -194,9 +206,10 @@
   </section>
   <section name="STABILIZATION_ATTITUDE_INDI" prefix="STABILIZATION_INDI_">
     <!-- control effectiveness -->
-    <define name="G1_P" value="0.017837" />
-    <define name="G1_Q" value="0.018315" />
-    <define name="G1_R" value="0.001049" />
+    <define name="FULL_AUTHORITY" value="TRUE"/>
+    <define name="G1_P" value="0.02" />
+    <define name="G1_Q" value="0.02" />
+    <define name="G1_R" value="0.002" />
     <define name="G2_R" value="0.076486" />
     <!-- For the bebop2 we need to filter the roll rate due to the dampers -->
     <define name="FILTER_ROLL_RATE" value="FALSE" />
@@ -220,8 +233,8 @@
     <define name="USE_ADAPTIVE" value="FALSE" />
     <define name="ADAPTIVE_MU" value="0.0001" />
     <!-- max rates (conservative) -->
-    <define name="STABILIZATION_INDI_MAX_RATE" value="343.77" unit="deg/s"/>
-    <define name="STABILIZATION_INDI_MAX_R" value="120" unit="deg/s"/>
+    <define name="MAX_RATE" value="343.77" unit="deg/s"/>
+    <define name="MAX_R" value="60" unit="deg/s"/>
   </section>
   <section name="GUIDANCE_V" prefix="GUIDANCE_V_">
     <define name="HOVER_KP" value="350" />
@@ -232,8 +245,10 @@
   </section>
   <section name="GUIDANCE_H" prefix="GUIDANCE_H_">
     <!-- Good weather -->
-    <define name="MAX_BANK" value="20" unit="deg" />
-    <define name="REF_MAX_SPEED" value="2" unit="m/s" />
+    <define name="MAX_PHI" value="45" unit="deg"/>
+    <define name="MAX_THETA" value="45" unit="deg"/>
+    <define name="REF_MAX_SPEED" value="12" unit="m/s" />
+    <define name="REF_MAX_ACCEL" value="4.5" />
     <!-- Bad weather -->
     <!-- define name="MAX_BANK" value="32" unit="deg"/ -->
     <define name="PGAIN" value="50" />
@@ -254,8 +269,8 @@
   <section name="BAT">
     <define name="MILLIAMP_AT_FULL_THROTTLE" value="8700" />
     <define name="CATASTROPHIC_BAT_LEVEL" value="9.2" unit="V" />
-    <define name="CRITIC_BAT_LEVEL" value="9.9" unit="V" />
-    <define name="LOW_BAT_LEVEL" value="10.2" unit="V" />
+    <define name="CRITIC_BAT_LEVEL" value="10.3" unit="V" />
+    <define name="LOW_BAT_LEVEL" value="10.7" unit="V" />
     <define name="MAX_BAT_LEVEL" value="12.4" unit="V" />
   </section>
 </airframe>

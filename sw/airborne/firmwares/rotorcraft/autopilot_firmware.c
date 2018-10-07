@@ -35,6 +35,7 @@
 #include "subsystems/electrical.h"
 #include "subsystems/datalink/telemetry.h"
 #include "subsystems/radio_control.h"
+#include "stabilization/stabilization_attitude_rc_setpoint.h"
 
 #if USE_GPS
 #include "subsystems/gps.h"
@@ -123,6 +124,15 @@ static void send_fp(struct transport_tx *trans, struct link_device *dev)
 {
   int32_t carrot_up = -guidance_v_z_sp;
   int32_t carrot_heading = ANGLE_BFP_OF_REAL(guidance_h.sp.heading);
+  int32_t hybrid_heading = stabilization_attitude_get_heading_i();
+  int32_t hybrid_phi = stateGetNedToBodyEulers_i()->phi;
+  int32_t hybrid_theta = stateGetNedToBodyEulers_i()->theta;
+#if USE_GUIDANCE_DELFTACOPTER
+  if(dc_mode_fwd) {
+    hybrid_phi = ANGLE_BFP_OF_REAL(fwdEulers.phi);
+    hybrid_theta = ANGLE_BFP_OF_REAL(fwdEulers.theta);
+  }
+#endif
   pprz_msg_send_ROTORCRAFT_FP(trans, dev, AC_ID,
                               &(stateGetPositionEnu_i()->x),
                               &(stateGetPositionEnu_i()->y),
@@ -130,9 +140,9 @@ static void send_fp(struct transport_tx *trans, struct link_device *dev)
                               &(stateGetSpeedEnu_i()->x),
                               &(stateGetSpeedEnu_i()->y),
                               &(stateGetSpeedEnu_i()->z),
-                              &(stateGetNedToBodyEulers_i()->phi),
-                              &(stateGetNedToBodyEulers_i()->theta),
-                              &(stateGetNedToBodyEulers_i()->psi),
+                              &hybrid_phi,
+                              &hybrid_theta,
+                              &hybrid_heading,
                               &guidance_h.sp.pos.y,
                               &guidance_h.sp.pos.x,
                               &carrot_up,
@@ -149,10 +159,12 @@ static void send_fp_min(struct transport_tx *trans, struct link_device *dev)
   // ground speed in cm/s
   uint16_t gspeed = stateGetHorizontalSpeedNorm_f() / 100;
 #endif
+  int32_t hybrid_heading = stabilization_attitude_get_heading_i();
   pprz_msg_send_ROTORCRAFT_FP_MIN(trans, dev, AC_ID,
                                   &(stateGetPositionEnu_i()->x),
                                   &(stateGetPositionEnu_i()->y),
                                   &(stateGetPositionEnu_i()->z),
+                                  &hybrid_heading,
                                   &gspeed);
 }
 
@@ -177,11 +189,23 @@ static void send_rotorcraft_rc(struct transport_tx *trans, struct link_device *d
 
 static void send_rotorcraft_cmd(struct transport_tx *trans, struct link_device *dev)
 {
+  __attribute__((unused)) int32_t zero = 0;
   pprz_msg_send_ROTORCRAFT_CMD(trans, dev, AC_ID,
                                &stabilization_cmd[COMMAND_ROLL],
                                &stabilization_cmd[COMMAND_PITCH],
                                &stabilization_cmd[COMMAND_YAW],
-                               &stabilization_cmd[COMMAND_THRUST]);
+                               &stabilization_cmd[COMMAND_THRUST],
+                             #ifdef COMMAND_ELEVATOR
+                               &stabilization_cmd[COMMAND_ELEVATOR],
+                             #else
+                               &zero,
+                             #endif
+                             #ifdef COMMAND_AILERON
+                               &stabilization_cmd[COMMAND_AILERON]);
+                             #else
+                               &zero);
+                             #endif
+
 }
 
 

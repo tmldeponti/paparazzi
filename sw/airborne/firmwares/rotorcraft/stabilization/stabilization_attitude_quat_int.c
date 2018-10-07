@@ -64,6 +64,14 @@ struct Int32Quat   stab_att_sp_quat;
 struct Int32Eulers stab_att_sp_euler;
 
 struct AttRefQuatInt att_ref_quat_i;
+struct FloatEulers fwdEulers;
+bool dc_mode_fwd = false;
+
+#ifdef STABILIZATION_SWASHPLATE_GAIN
+float stabilization_swashplate_gain = STABILIZATION_SWASHPLATE_GAIN;
+#else
+float stabilization_swashplate_gain = 1.0;
+#endif
 
 #define IERROR_SCALE 128
 #define GAIN_PRESCALER_FF 48
@@ -131,6 +139,13 @@ static void send_ahrs_ref_quat(struct transport_tx *trans, struct link_device *d
                               &(quat->qy),
                               &(quat->qz));
 }
+
+static void send_trim(struct transport_tx *trans, struct link_device *dev)
+{
+  pprz_msg_send_TRIM(trans, dev, AC_ID,
+                              &delftacopter_fwd_pitch_trim,
+                              &delftacopter_fwd_roll_trim);
+}
 #endif
 
 void stabilization_attitude_init(void)
@@ -144,6 +159,7 @@ void stabilization_attitude_init(void)
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_INT, send_att);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_REF_INT, send_att_ref);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AHRS_REF_QUAT, send_ahrs_ref_quat);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_TRIM, send_trim);
 #endif
 }
 
@@ -167,6 +183,7 @@ void stabilization_attitude_set_failsafe_setpoint(void)
   stab_att_sp_quat.qx = 0;
   stab_att_sp_quat.qy = 0;
   PPRZ_ITRIG_SIN(stab_att_sp_quat.qz, heading2);
+  int32_quat_normalize(&stab_att_sp_quat);
 }
 
 void stabilization_attitude_set_rpy_setpoint_i(struct Int32Eulers *rpy)
@@ -229,6 +246,9 @@ static void attitude_run_fb(int32_t fb_commands[], struct Int32AttitudeGains *ga
 
 void stabilization_attitude_run(bool enable_integrator)
 {
+#if USE_SYS_ID_DOUBLET
+  sys_id_doublet_add_attitude(&stab_att_sp_quat);
+#endif
 
   /*
    * Update reference
@@ -277,6 +297,9 @@ void stabilization_attitude_run(bool enable_integrator)
   /* compute the feed forward command */
   attitude_run_ff(stabilization_att_ff_cmd, &stabilization_gains, &att_ref_quat_i.accel);
 
+  stabilization_att_ff_cmd[COMMAND_ROLL] += guidance_feed_forward_yaw_which_is_delftacopter_roll;
+  guidance_feed_forward_yaw_which_is_delftacopter_roll = 0;
+
   /* compute the feed back command */
   attitude_run_fb(stabilization_att_fb_cmd, &stabilization_gains, &att_err, &rate_err, &stabilization_att_sum_err_quat);
 
@@ -285,10 +308,86 @@ void stabilization_attitude_run(bool enable_integrator)
   stabilization_cmd[COMMAND_PITCH] = stabilization_att_fb_cmd[COMMAND_PITCH] + stabilization_att_ff_cmd[COMMAND_PITCH];
   stabilization_cmd[COMMAND_YAW] = stabilization_att_fb_cmd[COMMAND_YAW] + stabilization_att_ff_cmd[COMMAND_YAW];
 
+  // Forward command to aero actuators
+  stabilization_cmd[COMMAND_ELEVATOR] = stabilization_cmd[COMMAND_PITCH];
+  stabilization_cmd[COMMAND_AILERON] = stabilization_cmd[COMMAND_YAW];
+
+#if defined(STABILIZATION_ADVANCE_ANGLE_P) || defined(STABILIZATION_ADVANCE_ANGLE_Q)
+  /* Advance angle compensation for advanced helicopter swashplate mixing */
+  int32_t cmd_roll  = cosf(stabilization_advance_angle_p)*stabilization_cmd[COMMAND_ROLL] - sinf(stabilization_advance_angle_q)*stabilization_cmd[COMMAND_PITCH];
+  int32_t cmd_pitch = sinf(stabilization_advance_angle_p)*stabilization_cmd[COMMAND_ROLL] + cosf(stabilization_advance_angle_q)*stabilization_cmd[COMMAND_PITCH];
+
+  stabilization_cmd[COMMAND_ROLL] = cmd_roll;
+  stabilization_cmd[COMMAND_PITCH] = cmd_pitch;
+#endif
+
+  // HACK forward controller
+  if(delftacopter_fwd_controller_enabled) {
+    struct FloatQuat pitchQ;
+    struct FloatQuat fwdState;
+    
+    // Rotate rates from body axis to forward axis
+    struct FloatRates *curRates = stateGetBodyRates_f();
+    float fwd_roll_rate = -curRates->r;
+
+    // Rotate body attitude to forward axis
+    struct FloatQuat *curState = stateGetNedToBodyQuat_f();
+    struct FloatEulers pitch90 = {0.0, -TRANSITION_MAX_OFFSET, 0.0};
+    float_quat_of_eulers(&pitchQ, &pitch90);
+    float_quat_comp(&fwdState, curState, &pitchQ);
+    float_eulers_of_quat(&fwdEulers, &fwdState);
+
+    // Compute the roll and pitch error
+    float roll_err = delftacopter_fwd_roll - fwdEulers.phi;
+    float pitch_err = delftacopter_fwd_pitch - fwdEulers.theta;
+
+    // Compute the pitch integrator
+    delftacopter_fwd_pitch_trim += pitch_err * delftacopter_fwd_pitch_igain;
+    delftacopter_fwd_roll_trim += roll_err * delftacopter_fwd_roll_igain;
+    BoundAbs(delftacopter_fwd_pitch_trim, MAX_PPRZ/3);
+    BoundAbs(delftacopter_fwd_roll_trim, MAX_PPRZ/3);
+    float pitch_cmd = pitch_err * delftacopter_fwd_pitch_pgain - curRates->q * delftacopter_fwd_pitch_dgain + delftacopter_fwd_pitch_trim;
+    float roll_cmd = roll_err * delftacopter_fwd_roll_pgain - fwd_roll_rate * delftacopter_fwd_roll_dgain + delftacopter_fwd_roll_trim;
+
+    // Calculate roll and pitch based on yaw
+    int32_t cmd_roll1  = cosf(delftacopter_fwd_advance_angle_p)*delftacopter_fwd_yaw - sinf(delftacopter_fwd_advance_angle_q)*pitch_cmd*delftacopter_fwd_pitch_swp;
+    int32_t cmd_pitch1 = sinf(delftacopter_fwd_advance_angle_p)*delftacopter_fwd_yaw + cosf(delftacopter_fwd_advance_angle_q)*pitch_cmd*delftacopter_fwd_pitch_swp;
+
+    // Compute the stabilization commands
+    stabilization_cmd[COMMAND_ELEVATOR] =  pitch_cmd;
+    stabilization_cmd[COMMAND_AILERON] = - roll_cmd; // Roll is using delftacopter yaw actuator which has opposite sign than fixedwing roll
+    stabilization_cmd[COMMAND_ROLL] = cmd_roll1 + delftacopter_fwd_roll_swp_trim;
+    stabilization_cmd[COMMAND_PITCH] = cmd_pitch1 + delftacopter_fwd_pitch_swp_trim;
+    stabilization_cmd[COMMAND_YAW] = 0;
+    dc_mode_fwd = true;
+    stabilization_attitude_enter();
+  }
+  else {
+//    delftacopter_fwd_pitch_trim = DC_FORWARD_PITCH_TRIM;//-0.03*MAX_PPRZ;
+//    delftacopter_fwd_roll_trim = DC_FORWARD_ROLL_TRIM;
+    dc_mode_fwd = false;
+  }
+  delftacopter_fwd_controller_enabled = false;
+
+  // HACK to disable swashplate if forward only
+  if (throttle_curve.mode == DC_TRANSITION_THROTTLE_CURVE || throttle_curve.mode == DC_FORWARD_THROTTLE_CURVE) {
+    stabilization_cmd[COMMAND_ROLL] = stabilization_cmd[COMMAND_ROLL] * stabilization_swashplate_gain;
+    stabilization_cmd[COMMAND_PITCH] = stabilization_cmd[COMMAND_PITCH] * stabilization_swashplate_gain;
+    stabilization_cmd[COMMAND_YAW] = stabilization_cmd[COMMAND_YAW] * stabilization_swashplate_gain;
+  }
+
+#if USE_SYS_ID_CHIRP
+  // if (autopilot.mode == AP_MODE_NAV) {
+  sys_id_chirp_add_values_and_log(stabilization_cmd);
+  // }
+#endif
+
   /* bound the result */
   BoundAbs(stabilization_cmd[COMMAND_ROLL], MAX_PPRZ);
   BoundAbs(stabilization_cmd[COMMAND_PITCH], MAX_PPRZ);
   BoundAbs(stabilization_cmd[COMMAND_YAW], MAX_PPRZ);
+  BoundAbs(stabilization_cmd[COMMAND_ELEVATOR], MAX_PPRZ);
+  BoundAbs(stabilization_cmd[COMMAND_AILERON], MAX_PPRZ);
 }
 
 void stabilization_attitude_read_rc(bool in_flight, bool in_carefree, bool coordinated_turn)

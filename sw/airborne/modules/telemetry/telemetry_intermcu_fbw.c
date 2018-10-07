@@ -74,7 +74,7 @@ void telemetry_intermcu_event(void)
     /* Switch on MSG ID */
     switch(pprzlink_get_msg_id(telemetry_intermcu.rx_buffer)) {
       case DL_EMERGENCY_CMD:
-        if(DL_EMERGENCY_CMD_ac_id(telemetry_intermcu.rx_buffer) == AC_ID
+        if((DL_EMERGENCY_CMD_ac_id(telemetry_intermcu.rx_buffer) == AC_ID || DL_EMERGENCY_CMD_ac_id(telemetry_intermcu.rx_buffer) == (AC_ID+1))
             && DL_EMERGENCY_CMD_cmd(telemetry_intermcu.rx_buffer) == 0) {
           fbw_mode = FBW_MODE_FAILSAFE;
         }
@@ -103,15 +103,17 @@ static void telemetry_intermcu_repack(struct transport_tx *trans, struct link_de
   struct pprzlink_msg pmsg;
   pmsg.trans = trans;
   pmsg.dev = dev;
-  pmsg.sender_id = ac_id;
+  pmsg.sender_id = ac_id + 1;
   pmsg.receiver_id = 0;
   pmsg.component_id = 0;
   
   trans->count_bytes(&pmsg, size);
   trans->start_message(&pmsg, _FD, size);
+  msg[0]++;
   trans->put_bytes(&pmsg, _FD, DL_TYPE_UINT8, DL_FORMAT_ARRAY, (void *) msg, size);
   trans->end_message(&pmsg, _FD);
 #else
+#warning AC_ID is not +1 for FBW datalink
   trans->count_bytes(trans->impl, dev, trans->size_of(trans->impl, size));
   trans->start_message(trans->impl, dev, 0, size);
   trans->put_bytes(trans->impl, dev, 0, DL_TYPE_UINT8, DL_FORMAT_ARRAY, (void *) msg, size);

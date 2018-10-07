@@ -104,8 +104,9 @@ struct HorizontalGuidance {
 };
 
 extern struct HorizontalGuidance guidance_h;
+extern struct Int32Vect2  guidance_h_cmd_earth;
 
-extern int32_t transition_percentage;
+extern float transition_percentage;
 
 extern void guidance_h_init(void);
 extern void guidance_h_mode_changed(uint8_t new_mode);
@@ -114,6 +115,10 @@ extern void guidance_h_run(bool in_flight);
 
 extern void guidance_h_hover_enter(void);
 extern void guidance_h_nav_enter(void);
+
+#if !GUIDANCE_INDI
+void guidance_h_traj_run(bool in_flight);
+#endif
 
 /** Set horizontal guidance from NAV and run control loop
  */
@@ -163,6 +168,19 @@ extern bool guidance_h_set_guided_heading_rate(float rate);
  * @return Pointer to a structure containing x and y position errors
  */
 extern const struct Int32Vect2 *guidance_h_get_pos_err(void);
+
+/** Run the transition to forward or hover mode for hybrid vehicles
+ * @param to_forward If the transition is to forward (false is to hover)
+ */
+extern void guidance_h_transition_run(bool to_forward, float precentage_add);
+
+/** Update the guidance reference model
+ */
+extern void guidance_h_update_reference(void);
+
+/** Reset the guidance reference using the current position
+ */
+extern void guidance_h_reset_reference_from_current_position(void);
 
 /* Make sure that ref can only be temporarily disabled for testing,
  * but not enabled if GUIDANCE_H_USE_REF was defined to FALSE.

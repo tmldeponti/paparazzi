@@ -43,7 +43,14 @@ WIDTH = 700.0
 class AtcFrame(wx.Frame):
 
     def message_recv(self, ac_id, msg):
-        self.callsign = "ID=" + str(ac_id)
+        if (ac_id == 6) | (ac_id == 7):
+            self.callsign = "PH-3MM"
+        elif (ac_id == 17) | (ac_id == 18):
+            self.callsign = "PH-2OI"
+        elif (ac_id == 54) | (ac_id == 55):
+            self.callsign = "PH-4HP"
+        else:
+            self.callsign = "ID=" + str(ac_id)
 
         if msg.name == "INS_REF":
             self.qfe = round(float(msg['baro_qfe'])  / 100.0,1)
@@ -59,6 +66,13 @@ class AtcFrame(wx.Frame):
             self.airspeed = round(float(msg['airspeed']) * 3.6 / 1.852,1)
             self.qnh = round(float(msg['qnh']),1)
             self.amsl = round(float(msg['amsl_baro']) * 3.28084,1)
+            wx.CallAfter(self.update)
+        elif msg.name =="ENERGY":
+            bat = float(msg['bat'])
+            if bat < 10.0:
+                self.safe_to_approach = "Afirm"
+            else:
+                self.safe_to_approach = "Negative!"
             wx.CallAfter(self.update)
 
     def update(self):
@@ -111,6 +125,8 @@ class AtcFrame(wx.Frame):
 
         dc.DrawText("QNH: " + str(self.qnh*100.0) + " QFE: " + str(self.qfe) + "",tdx,tdx+tdy*5)
 
+
+        dc.DrawText("Safe to approach: " + self.safe_to_approach + " ",tdx,tdx+tdy*6)
 
     def __init__(self):
 

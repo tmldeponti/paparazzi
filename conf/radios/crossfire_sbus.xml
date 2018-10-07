@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
-<!-- (c) 2018 Freek van Tienen
+<!-- $Id: cockpitSX.xml 3160 2009-03-31 23:22:21Z flixr $
+--
+-- (c) 2018 Freek van Tienen
 --
 -- This file is part of paparazzi.
 --
@@ -18,6 +20,28 @@
 -- the Free Software Foundation, 59 Temple Place - Suite 330,
 -- Boston, MA 02111-1307, USA.
 -->
+
+<!--
+-- Attributes of root (Radio) tag :
+-- name: name of RC
+-- data_min: min width of a pulse to be considered as a data pulse
+-- data_max: max width of a pulse to be considered as a data pulse
+-- sync_min: min width of a pulse to be considered as a synchro pulse
+-- sync_max: max width of a pulse to be considered as a synchro pulse
+-- min, max and sync are expressed in micro-seconds
+-->
+
+<!--
+-- Attributes of channel tag :
+-- ctl: name of the command on the transmitter - only for displaying
+-- function: logical command
+-- average: (boolean) channel filtered through several frames (for discrete commands)
+-- min: minimum pulse length (micro-seconds)
+-- max: maximum pulse length (micro-seconds)
+-- neutral: neutral pulse length (micro-seconds)
+-- Note: a command may be reversed by exchanging min and max values
+-->
+
 <!DOCTYPE radio SYSTEM "radio.dtd">
 <radio name="Crossfire SBUS" data_min="900" data_max="2100" sync_min ="5000" sync_max ="15000" pulse_type="POSITIVE">
  <channel ctl="left_stick_vert" function="THROTTLE" min="1100" neutral="1100" max="1900" average="0"/>

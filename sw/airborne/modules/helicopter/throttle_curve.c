@@ -29,6 +29,7 @@
 #include "autopilot.h"
 #include "subsystems/radio_control.h"
 #include "subsystems/abi.h"
+#include "subsystems/electrical.h"
 
 /* The switching values for the Throttle Curve Mode switch */
 #define THROTTLE_CURVE_SWITCH_VAL (MAX_PPRZ*2/THROTTLE_CURVES_NB)
@@ -55,6 +56,8 @@
 #endif
 static abi_event rpm_ev;
 static void rpm_cb(uint8_t sender_id, uint16_t *rpm, uint8_t num_act);
+
+uint16_t rpm_setpoint_mode_1;
 
 /* Initialize the throttle curves from the airframe file */
 struct throttle_curve_t throttle_curve = {
@@ -88,6 +91,8 @@ void throttle_curve_init(void)
   throttle_curve.rpm_measured = false;
   throttle_curve.throttle_trim = 0;
   throttle_curve.coll_trim = 0;
+
+  rpm_setpoint_mode_1 = throttle_curve.curves[1].rpm[0];
 
   AbiBindMsgRPM(THROTTLE_CURVE_RPM_ID, &rpm_ev, rpm_cb);
 
@@ -188,12 +193,22 @@ void throttle_curve_run(pprz_t cmds[], uint8_t ap_mode)
     throttle_curve.throttle = new_throttle;
     throttle_curve.rpm_measured = false;
   } else if (curve.rpm[0] == 0xFFFF) {
+    // Compensate Battery Voltage
+    int32_t new_throttle = throttle_curve.throttle * 231 / electrical.vsupply;
+    throttle_curve.throttle = new_throttle;
     throttle_curve.rpm_err_sum = 0;
   }
 
   // Set the commands
   cmds[COMMAND_THRUST] = throttle_curve.throttle; //Reuse for now
   cmds[COMMAND_COLLECTIVE] = throttle_curve.collective;
+
+  // disable the tip propellers when in transition throttle curve or forward throttle curve
+  if (throttle_curve.mode == DC_TRANSITION_THROTTLE_CURVE || throttle_curve.mode == DC_FORWARD_THROTTLE_CURVE) {
+    INTERMCU_SET_CMD_STATUS(INTERMCU_CMD_TIPPROPS);
+  } else {
+    INTERMCU_CLR_CMD_STATUS(INTERMCU_CMD_TIPPROPS);
+  }
 
   // Only set throttle if motors are on
   if (!autopilot_get_motors_on()) {
@@ -210,4 +225,11 @@ void nav_throttle_curve_set(uint8_t mode)
   int16_t new_mode = mode;
   Bound(new_mode, 0, THROTTLE_CURVES_NB - 1);
   throttle_curve.nav_mode = new_mode;
+}
+
+void throttle_curve_rpm_setpoint_handler(uint16_t rpm_setpoint) {
+  static uint8_t curve_no = 1;
+  for (uint8_t i = 0; i < throttle_curve.curves[curve_no].nb_points; i++) {
+    throttle_curve.curves[curve_no].rpm[i] = rpm_setpoint;
+  }
 }

@@ -100,7 +100,7 @@ type aircraft = {
   notebook_label : GMisc.label;
   strip : Strip.t;
   rc_max_rate: float;
-  mutable first_pos : bool;
+  mutable first_pos : int;
   mutable last_block_name : string;
   mutable in_kill_mode : bool;
   mutable speed : float;
@@ -722,7 +722,7 @@ let create_ac = fun ?(confirm_kill=true) alert (geomap:G.widget) (acs_notebook:G
              misc_page = misc_page;
              dl_settings_page = dl_settings_page;
              rc_settings_page = rc_settings_page;
-             strip = strip; first_pos = true;
+             strip = strip; first_pos = 0;
              rc_max_rate = rc_max_rate;
              last_block_name = ""; alt = 0.; target_alt = 0.;
              in_kill_mode = false; speed = 0.;
@@ -899,11 +899,11 @@ let get_fbw_msg = fun alarm _sender vs ->
   and rate = (float_of_int ((PprzLink.int_assoc "rc_rate" vs) * 10) ) /. ac.rc_max_rate in
   (* divide by 5 to have normal values between 0 and 10 *)
   (* RC rate max approx. 50 Hz *)
-  ac.strip#set_rc rate status;
-  let mode = PprzLink.string_assoc "rc_mode" vs in
+  ac.strip#set_rc rate status
+  (*let mode = PprzLink.string_assoc "rc_mode" vs in
   if mode = "FAILSAFE" then begin
     log_and_say alarm ac.ac_name (sprintf "%s, mayday, AP Failure. Switch to manual." ac.ac_speech_name)
-  end
+  end*)
 
 let get_telemetry_status = fun alarm _sender vs ->
   let ac = get_ac vs in
@@ -1159,7 +1159,7 @@ end (* module GCS_icon *)
 
 
 (******************************** FLIGHT_PARAMS ******************************)
-let listen_flight_params = fun geomap auto_center_new_ac auto_center_ac alert alt_graph ->
+let listen_flight_params = fun geomap auto_center_new_ac auto_center_ac fit_to_window alert alt_graph ->
   let get_fp = fun _sender vs ->
     let ac_id = PprzLink.string_assoc "ac_id" vs in
     if ac_id = gcs_id then
@@ -1187,9 +1187,14 @@ let listen_flight_params = fun geomap auto_center_new_ac auto_center_ac alert al
         ac.last_unix_time <- unix_time
       end;
 
-      if auto_center_new_ac && ac.first_pos then begin
-        center geomap ac.track ();
-        ac.first_pos <- false
+      if ac.first_pos < 120 then begin
+        if auto_center_new_ac then begin
+          center geomap ac.track ();
+        end;
+        if fit_to_window then begin
+          geomap#fit_to_window ();
+        end;
+        ac.first_pos <- ac.first_pos +1
       end;
       if auto_center_ac = ac_id then begin
         center geomap ac.track ();
@@ -1548,7 +1553,7 @@ let get_shapes = fun (geomap:G.widget)_sender vs ->
 let listen_shapes = fun (geomap:G.widget) ->
   safe_bind "SHAPE" (get_shapes geomap)
 
-let listen_acs_and_msgs = fun geomap ac_notebook strips confirm_kill my_alert auto_center_new_ac auto_center_ac alt_graph timestamp ->
+let listen_acs_and_msgs = fun geomap ac_notebook strips confirm_kill my_alert auto_center_new_ac auto_center_ac fit_to_window alt_graph timestamp ->
   (** Probe live A/Cs *)
   let probe = fun () ->
     ignore(message_request "gcs" "AIRCRAFTS" [] (fun _sender vs -> _req_aircrafts := false; aircrafts_msg confirm_kill my_alert geomap ac_notebook strips vs)) in
@@ -1558,7 +1563,7 @@ let listen_acs_and_msgs = fun geomap ac_notebook strips confirm_kill my_alert au
   safe_bind "NEW_AIRCRAFT" (fun _sender vs -> one_new_ac confirm_kill my_alert geomap ac_notebook  strips (PprzLink.string_assoc "ac_id" vs));
 
   (** Listen for all messages on ivy *)
-  listen_flight_params geomap auto_center_new_ac auto_center_ac my_alert alt_graph;
+  listen_flight_params geomap auto_center_new_ac auto_center_ac fit_to_window my_alert alt_graph;
   listen_wind_msg geomap;
   listen_fbw_msg my_alert;
   listen_engine_status_msg ();

@@ -70,6 +70,7 @@ struct FloatRates stabilization_rate_igain;
 struct FloatRates stabilization_rate_sum_err;
 
 struct FloatRates stabilization_rate_fb_cmd;
+float stabilization_advance_angle;
 
 #ifndef STABILIZATION_RATE_DEADBAND_P
 #define STABILIZATION_RATE_DEADBAND_P 0
@@ -133,10 +134,11 @@ void stabilization_rate_init(void)
 #endif
 }
 
+static bool rc_is_read = false;
 
 void stabilization_rate_read_rc(void)
 {
-
+  rc_is_read = true;
   if (ROLL_RATE_DEADBAND_EXCEEDED()) {
     stabilization_rate_sp.p = radio_control.values[RADIO_ROLL] * STABILIZATION_RATE_SP_MAX_P / MAX_PPRZ;
   } else {
@@ -159,7 +161,7 @@ void stabilization_rate_read_rc(void)
 //Read rc with roll and yaw sitcks switched if the default orientation is vertical but airplane sticks are desired
 void stabilization_rate_read_rc_switched_sticks(void)
 {
-
+  rc_is_read = true;
   if (ROLL_RATE_DEADBAND_EXCEEDED()) {
     stabilization_rate_sp.r =  - radio_control.values[RADIO_ROLL] * STABILIZATION_RATE_SP_MAX_P / MAX_PPRZ;
   } else {
@@ -189,6 +191,14 @@ void stabilization_rate_run(bool in_flight)
   /* compute feed-back command */
   struct FloatRates _error;
   struct FloatRates *body_rate = stateGetBodyRates_f();
+
+#if USE_SYS_ID_DOUBLET
+  if (rc_is_read)
+    sys_id_doublet_add_rate(&stabilization_rate_sp);
+
+  rc_is_read = false;
+#endif
+  
   RATES_DIFF(_error, stabilization_rate_sp, (*body_rate));
   if (in_flight) {
     /* update integrator */
@@ -215,9 +225,30 @@ void stabilization_rate_run(bool in_flight)
   stabilization_cmd[COMMAND_PITCH] = stabilization_rate_fb_cmd.q;
   stabilization_cmd[COMMAND_YAW]   = stabilization_rate_fb_cmd.r;
 
+  // Forward command to aero actuators
+  stabilization_cmd[COMMAND_ELEVATOR] = stabilization_cmd[COMMAND_PITCH];
+  stabilization_cmd[COMMAND_AILERON] = stabilization_cmd[COMMAND_YAW];
+
+#if defined(STABILIZATION_ADVANCE_ANGLE_P) || defined(STABILIZATION_ADVANCE_ANGLE_Q)
+  /* Advance angle compensation for advanced helicopter swashplate mixing */
+  int32_t cmd_roll  = cosf(stabilization_advance_angle_p)*stabilization_cmd[COMMAND_ROLL] - sinf(stabilization_advance_angle_q)*stabilization_cmd[COMMAND_PITCH];
+  int32_t cmd_pitch = sinf(stabilization_advance_angle_p)*stabilization_cmd[COMMAND_ROLL] + cosf(stabilization_advance_angle_q)*stabilization_cmd[COMMAND_PITCH];
+
+  stabilization_cmd[COMMAND_ROLL] = cmd_roll;
+  stabilization_cmd[COMMAND_PITCH] = cmd_pitch;
+#endif
+
+#if USE_SYS_ID_CHIRP
+  // if (autopilot.mode == AP_MODE_NAV) {
+  sys_id_chirp_add_values_and_log(stabilization_cmd);
+  // }
+#endif
+  
   /* bound the result */
   BoundAbs(stabilization_cmd[COMMAND_ROLL], MAX_PPRZ);
   BoundAbs(stabilization_cmd[COMMAND_PITCH], MAX_PPRZ);
   BoundAbs(stabilization_cmd[COMMAND_YAW], MAX_PPRZ);
+  BoundAbs(stabilization_cmd[COMMAND_ELEVATOR], MAX_PPRZ);
+  BoundAbs(stabilization_cmd[COMMAND_AILERON], MAX_PPRZ);
 
 }
