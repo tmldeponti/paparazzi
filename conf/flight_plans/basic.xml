@@ -19,6 +19,7 @@
   </waypoints>
   <exceptions>
     <!--exception cond="datalink_time > 22" deroute="Standby"/-->
+    <exception cond="RCLost()" deroute="Holding point"/>
   </exceptions>
   <blocks>
     <block name="Wait GPS">

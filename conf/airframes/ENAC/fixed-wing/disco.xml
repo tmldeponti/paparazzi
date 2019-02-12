@@ -11,7 +11,9 @@
     <configure name="USE_MAGNETOMETER" value="TRUE"/>
 
     <target name="ap" board="disco">
-      <module name="radio_control" type="sbus"/>
+      <module name="radio_control" type="sbus">
+        <define name="RADIO_KILL" value="RADIO_AUX1"/>
+      </module>
     </target>
     <target name="sim" board="pc">
       <module name="radio_control" type="ppm"/>
@@ -48,12 +50,14 @@
     <axis name="THROTTLE" failsafe_value="0"/>
     <axis name="ROLL" failsafe_value="0"/>
     <axis name="PITCH" failsafe_value="0"/>
+    <axis name="KILL" failsafe_value="-9600"/>
   </commands>
 
   <rc_commands>
     <set command="THROTTLE" value="@THROTTLE"/>
     <set command="ROLL" value="@ROLL"/>
     <set command="PITCH" value="@PITCH"/>
+    <set command="KILL" value="@KILL"/>
   </rc_commands>
 
   <section name="MIXER">
@@ -64,7 +68,7 @@
   <command_laws>
     <let var="aileron" value="@ROLL  * AILEVON_AILERON_RATE"/>
     <let var="elevator" value="@PITCH * AILEVON_ELEVATOR_RATE"/>
-    <set servo="MOTOR" value="@THROTTLE"/>
+    <set servo="MOTOR" value="(@KILL >= 0 ? @THROTTLE : 0)"/>
     <set servo="AILEVON_LEFT" value="$elevator - $aileron"/>
     <set servo="AILEVON_RIGHT" value="$elevator + $aileron"/>
   </command_laws>
