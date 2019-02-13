@@ -22,6 +22,10 @@
     </target>
 
     <module name="telemetry" type="transparent_udp"/>
+    <!--module name="telemetry" type="transparent">
+      <configure name="MODEM_PORT" value="UART2"/>
+      <configure name="MODEM_BAUD" value="B9600"/>
+    </module-->
 
     <module name="imu" type="disco"/>
     <module name="ahrs" type="float_dcm"/>
@@ -44,8 +48,8 @@
 
   <servos>
     <servo name="MOTOR" no="0" min="1000" neutral="1000" max="12500"/>
-    <servo name="AILEVON_RIGHT" no="6" min="1900" neutral="1500" max="1100"/>
-    <servo name="AILEVON_LEFT" no="1" min="1100" neutral="1500" max="1900"/>
+    <servo name="AILEVON_RIGHT" no="6" min="1900" neutral="1430" max="1100"/>
+    <servo name="AILEVON_LEFT" no="1" min="1100" neutral="1430" max="1900"/>
   </servos>
 
   <commands>
