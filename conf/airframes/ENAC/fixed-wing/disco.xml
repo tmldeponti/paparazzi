@@ -16,7 +16,9 @@
       </module>
     </target>
     <target name="sim" board="pc">
-      <module name="radio_control" type="ppm"/>
+      <module name="radio_control" type="ppm">
+        <define name="RADIO_KILL" value="RADIO_AUX1"/>
+      </module>
     </target>
 
     <module name="telemetry" type="transparent_udp"/>
