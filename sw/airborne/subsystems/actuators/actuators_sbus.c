@@ -28,6 +28,7 @@
 #include "subsystems/actuators/actuators_sbus.h"
 #include "generated/airframe.h"
 #include "mcu_periph/uart.h"
+#include "mcu_periph/gpio.h"
 
 /* Currently we only support 7 channels */
 #if SERVOS_SBUS_NB > ACTUATORS_SBUS_MAX_NB
@@ -54,6 +55,9 @@ void actuators_sbus_init(void)
 
   uart_periph_set_bits_stop_parity(&ACTUATORS_SBUS_DEV, UBITS_8, USTOP_2, UPARITY_EVEN);
   uart_periph_set_baudrate(&ACTUATORS_SBUS_DEV, B100000);
+
+  gpio_setup_pin_af(GPIOB, GPIO4, AFIO_MAPR_SWJ_CFG_FULL_SWJ_NO_JNTRST, true);
+  gpio_clear(GPIOB, GPIO4);
 }
 
 /*
@@ -91,7 +95,6 @@ void actuators_sbus_set(void)
 static inline void actuators_sbus_send(struct link_device *dev)
 {
   uint8_t i = 0;
-  uint8_t bits_sent = 0;
   uint8_t data[22];
 
   /* start */
@@ -101,20 +104,21 @@ static inline void actuators_sbus_send(struct link_device *dev)
   for (i = 0; i < 22; i++) {
     data[i] = 0x00;
   }
+  
+  uint8_t index = 0;
+  uint8_t offset = 0;
   for (i = 0; i < ACTUATORS_SBUS_MAX_NB; i++) {
-    uint16_t chn = actuators_sbus.cmds[i] & 0x07ff; // 11 bit
-    uint8_t ind = bits_sent / SBUS_BIT_PER_CHANNEL;
-    uint8_t shift = bits_sent % SBUS_BIT_PER_CHANNEL;
-    data[ind] |= (chn >> (3 + shift)) & 0xff; // Sends (8 - shift) bits of the 11: 11-(8-shift) remain = 3 + shift
-    if (shift > 5) { // need 3 bytes to fit the 11 bits
-      data[ind + 1] |= (chn >> (shift - 5)) & 0xff; // Sends next 8
-      data[ind + 2] |= (chn << (3 - shift)) &
-                       0xff; // Sends remaining 3 + shift - 8 bits = shift-5 bits: left aligned: 8 - (shift-5) = 3-shift
-    } else { // (shift <= 5) then it fits in 2 bytes
-      data[ind + 1] |= (chn << (5 - shift))) &
-      0xff; // Sends remaining 3 + shift bits left aligned: 8 - (3 + shift) = 5 - shift
+    uint16_t value = (uint16_t)((actuators_sbus.cmds[i] - 880) * 1.6f) & 0x07ff; // 11 bit
+
+    while (offset >= 8) {
+      ++index;
+      offset -= 8;
     }
-    bits_sent += SBUS_BIT_PER_CHANNEL;
+
+    data[index] |= (value << (offset)) & 0xff;
+    data[index + 1] |= (value >> (8 - offset)) & 0xff;
+    data[index + 2] |= (value >> (16 - offset)) & 0xff;
+    offset += 11;
   }
 
   /* Transmit all channels */

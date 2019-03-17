@@ -35,9 +35,9 @@
 
 #ifdef GPS_I2C
 #include "modules/gps/gps_ubx_i2c.h"
-#endif
-
+#else
 #include "mcu_periph/uart.h"
+#endif
 
 #ifndef PRIMARY_GPS
 #define PRIMARY_GPS GPS_UBX
@@ -72,27 +72,6 @@ struct GpsUbx {
 };
 
 extern struct GpsUbx gps_ubx;
-
-#if USE_GPS_UBX_RXM_RAW
-struct GpsUbxRawMes {
-  double cpMes;
-  double prMes;
-  float doMes;
-  uint8_t sv;
-  int8_t mesQI;
-  int8_t cno;
-  uint8_t lli;
-};
-
-struct GpsUbxRaw {
-  int32_t iTOW;
-  int16_t week;
-  uint8_t numSV;
-  struct GpsUbxRawMes measures[GPS_UBX_NB_CHANNELS];
-};
-
-extern struct GpsUbxRaw gps_ubx_raw;
-#endif
 
 /*
  * This part is used by the autopilot to read data from a uart

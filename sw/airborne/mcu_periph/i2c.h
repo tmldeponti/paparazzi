@@ -214,6 +214,13 @@ extern void i2c3_init(void);
 
 #endif /* USE_I2C3 */
 
+#if USE_I2C4
+
+extern struct i2c_periph i2c4;
+extern void i2c4_init(void);
+
+#endif /* USE_I2C4 */
+
 
 #if USE_I2C4
 
