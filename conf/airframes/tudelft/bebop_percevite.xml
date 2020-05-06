@@ -20,7 +20,6 @@
     <module name="stabilization" type="int_quat"/>
     <module name="ahrs" type="int_cmpl_quat">
       <configure name="USE_MAGNETOMETER" value="FALSE"/>
-      <configure name="USE_GPS" value="TRUE"/>
       <define name="AHRS_USE_GPS_HEADING" value="TRUE"/>
       <define name="AHRS_GRAVITY_UPDATE_COORDINATED_TURN" value="TRUE"/>
     </module>
@@ -72,7 +71,7 @@
   </section>
 
   <!-- TODO: Percevite, change aircraft here -->
-  <include href="conf/airframes/tudelft/calibrations/percevite1.xml" />
+  <include href="conf/airframes/tudelft/calibrations/percevite_drone1.xml" />
 
   <section name="AHRS" prefix="AHRS_">
     <!-- values used if no GPS fix, on 3D fix is update by geo_mag module -->
@@ -180,6 +179,7 @@
     <define name="MODE_MANUAL" value="AP_MODE_ATTITUDE_DIRECT"/>
     <define name="MODE_AUTO1" value="AP_MODE_ATTITUDE_Z_HOLD"/>
     <define name="MODE_AUTO2" value="AP_MODE_NAV"/>
+    <define name="NO_RC_THRUST_LIMIT" value="TRUE"/>
   </section>
 
   <section name="BAT">
