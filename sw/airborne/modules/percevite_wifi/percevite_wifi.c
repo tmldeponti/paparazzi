@@ -316,17 +316,17 @@ void percevite_wifi_init() {
 	
 	printf("-----------------Drone ID: [%d]-----------------\n", SELF_ID);
 
-	struct LlaCoor_f *lla_ref_f = stateGetPositionLla_f();
-  bool gps_valid_startup = stateIsLocalCoordinateValid();
-	printf("GPS initialized with [%d] at lat: %f, long: %f \n", 
-					gps_valid_startup, 
-					lla_ref_f->lat * 180.0/3.142, lla_ref_f->lon * 180.0/3.142);
+	// struct LlaCoor_f *lla_ref_f = stateGetPositionLla_f();
+  // bool gps_valid_startup = stateIsLocalCoordinateValid();
+	// printf("GPS initialized with [%d] at lat: %f, long: %f \n", 
+	// 				gps_valid_startup, 
+	// 				lla_ref_f->lat * 180.0/3.142, lla_ref_f->lon * 180.0/3.142);
 }
 
 // change ssid ten times every second
 void percevite_wifi_tx_loop() {
-	bool gps_valid = stateIsLocalCoordinateValid();
-	if (gps_valid) {
+	// bool gps_valid = stateIsLocalCoordinateValid();
+	// if (gps_valid) {
 		struct NedCoor_f *gpspos = stateGetPositionNed_f();
 		float gpsvel = stateGetHorizontalSpeedNorm_f();
 		struct FloatEulers *att = stateGetNedToBodyEulers_f();
@@ -367,7 +367,7 @@ void percevite_wifi_tx_loop() {
 			fprintf(drone_data_f, "%f,%f,", dr_data[id].vel, dr_data[id].head);
 		}
 		fprintf(drone_data_f, "%f\n", get_sys_time_float());
-	}
+	// }
 
 	// mutex, don't tx to esp when ack is being sent
   // if (esp.state!= ESP_RX_OK) {

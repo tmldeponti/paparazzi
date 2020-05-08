@@ -157,7 +157,7 @@ void percevite_vo_detect(drone_data_t *robot1, drone_data_t *robot2) {
   centre[1] = robot1->pos.y + robot2_offset[1];
   
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR) && (deltad > 1.5 * RR)) {
+  if ((tcpa > 0) && (dcpa < RR)) { //} && (deltad > 1.5 * RR)) {
     float newvel_cart[2];
     /* TODO: fix choosing L or R */
     percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
@@ -213,6 +213,11 @@ void percevite_vo_init(void) {
   drone2.head = (D2R) * 45.0;
   #endif
 
+  drone2.pos.x = 4.0;
+  drone2.pos.y = 0.0;
+  drone2.vel = 0.01;
+  drone2.head = (D2R) * 45.0;
+
   // vo_f = fopen("vo.csv", "w+");
 }
 
@@ -233,11 +238,15 @@ void percevite_vo_periodic(void) {
   #else
   // make copies from externed dr_data of percevite_wifi
   drone1 = dr_data[1];
-  drone2 = dr_data[2];
+  // drone2 = dr_data[2];
   #endif
 
   // change the vel and head of robot1
   percevite_vo_detect(&drone1, &drone2);
+
+  printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+          drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head,
+          drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head);
 
 }
 
