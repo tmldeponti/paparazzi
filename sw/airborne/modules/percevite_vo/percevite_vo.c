@@ -155,40 +155,63 @@ void percevite_vo_detect(drone_data_t *robot1, drone_data_t *robot2) {
   float centre[2];
   centre[0] = robot1->pos.x + robot2_offset[0]; 
   centre[1] = robot1->pos.y + robot2_offset[1];
-  
+
+  // commanded velocity and heading by VO
+  float resolved_vel_bdy, resolved_head_bdy;
   // collision is imminent if tcpa > 0 and dcpa < RR
   if ((tcpa > 0) && (dcpa < RR)) { //} && (deltad > 1.5 * RR)) {
     float newvel_cart[2];
     /* TODO: fix choosing L or R */
     percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
 
-    float resolved_vel_bdy, resolved_head_bdy;
     cart2polar(newvel_cart, &resolved_vel_bdy, &resolved_head_bdy);
 
     /* TODO: rate and mag bound here and send to ctrl outerloop */
     resolved_vel_bdy = min(max(resolved_vel_bdy, -3.0), 3.0);
     resolved_head_bdy = resolved_head_bdy + 0.0;
 
+    drone_color_t color = {0};
+    color.g = 200;
+    
     if (robot1->vel < resolved_vel_bdy) {
+      // BRIGHTER WHITE
+      color.r = 250;
+      color.g = 250;
+      color.b = 250; 
       printf("Speed up\n");
     } 
     if (robot1->vel > resolved_vel_bdy) {
+      // DIMMER WHITE
+      color.r = 70;
+      color.g = 70;
+      color.b = 70; 
       printf("Slow down\n");
     }
     if (robot1->head < resolved_head_bdy) {
+      // RED
+      color.r = 250;
+      color.g = 0;
+      color.b = 0; 
       printf("Rotate couter-cw\n");
     }
     if (robot1->head > resolved_head_bdy) {
+      // BLUE
+      color.r = 0;
+      color.g = 0;
+      color.b = 250; 
       printf("Rotate cw\n");
     }
-    
+    tx_led_struct(&color);
+    #ifdef SIM
     robot1->vel = resolved_vel_bdy;
     robot1->head = resolved_head_bdy;
+    #endif
   }
   // if no collision predicted, don't resolve and be what you were
+  // send the original velocity command back..
   else {
-    robot1->vel  = oldvel;
-    robot1->head = oldhead;
+    resolved_vel_bdy  = oldvel;
+    resolved_head_bdy = oldhead;
   }
 }
 
@@ -223,6 +246,10 @@ void percevite_vo_init(void) {
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
+
+  static drone_color_t color = {.r = 50, .g = 100, .b = 40};
+  color.r += 20;
+  tx_led_struct(&color);
 
   // simulate what happens to both robots to later extern it to Percevite WiFi
   // overwrite dr_data for tx...

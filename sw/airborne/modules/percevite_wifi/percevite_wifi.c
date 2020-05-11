@@ -47,7 +47,7 @@
 /* add pprz messages later */
 // #include "subsystems/datalink/telemetry.h"
 
-// #define DBG
+#define DBG
 
 FILE *drone_data_f;
 
@@ -75,8 +75,29 @@ static uint8_t send_to_esp(uint8_t *s, uint8_t len) {
 	return (i+3);
 }
 
+void tx_led_struct(const drone_color_t *drone_color) {
+	uint8_t tx_string[ESP_MAX_LEN] = {0};
+	drone_info_t drone_info = {
+				.drone_id = SELF_ID,
+				.packet_type = COLOR_FRAME,
+				.packet_length = 2 + sizeof(drone_info_t) + sizeof(drone_color_t),
+	};
+	memcpy(&tx_string, &drone_info, sizeof(drone_info_t));
+	memcpy(&tx_string[3], drone_color, sizeof(drone_color_t));
+
+	#ifdef DBG
+	// check via wireshark
+	printf("tx led string is:\n");
+	for (int i = 0; i < sizeof(drone_info_t) + sizeof(drone_color_t); i++) {
+		printf("0x%02x,", tx_string[i]);
+	}
+	#endif
+	
+	send_to_esp(tx_string, sizeof(drone_info_t) + sizeof(drone_color_t));
+}
+
 // tx: send struct to esp32
-static void tx_struct(uart_packet_t *uart_packet_tx) {
+static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 
 	printf("[tx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
 		uart_packet_tx->info.drone_id,
@@ -170,8 +191,8 @@ static void esp_parse(uint8_t c) {
 					byte_ctr = 0;
 				}
 
-				// packet-length = 3 bytes of info + 10 bytes of data
-				else if ((packet_type == DATA_FRAME) && (packet_length >= (sizeof(drone_data_t) + sizeof(drone_info_t)))) {
+        /* packet length will always be shorter than padded struct, create some leeway */
+        else if ((packet_type == DATA_FRAME || packet_type == COLOR_FRAME) && (packet_length >= (sizeof(drone_info_t) + sizeof(drone_color_t)))) {
 					// overwrite old checksum, start afresh
 					checksum = drone_id + packet_type + packet_length;
 					esp_state = ESP_DRONE_DATA;
@@ -225,23 +246,32 @@ static void esp_parse(uint8_t c) {
 				printf("0x%02x,", databuf[i]);
 			}
 			#endif
+			if (packet_type == DATA_FRAME) {
+				/* checksum matches, proceed to populate the info struct */
+				uart_packet_t uart_packet_rx = {
+					.info = {
+						.drone_id = drone_id,
+						.packet_type = packet_type,
+						.packet_length = packet_length,
+					},			
+				};
 
-			/* checksum matches, proceed to populate the info struct */
-			uart_packet_t uart_packet_rx = {
-				.info = {
-					.drone_id = drone_id,
-					.packet_type = packet_type,
-					.packet_length = packet_length,
-				},			
-			};
+				/* checksum matches, proceed to populate the data struct */
+				/* hope this is atomic, vo reads from externed dr_data */
+				memcpy(&dr_data[drone_id], &databuf, sizeof(drone_data_t));
 
-			/* checksum matches, proceed to populate the data struct */
-			/* hope this is atomic, vo reads from externed dr_data */
-			memcpy(&dr_data[drone_id], &databuf, sizeof(drone_data_t));
+				/* now revise the entire packet.. for dropout logs later */
+				uart_packet_rx.data = dr_data[drone_id];
+				print_drone_struct(&uart_packet_rx);
+			}
 
-			/* now revise the entire packet.. for dropout logs later */
-			uart_packet_rx.data = dr_data[drone_id];
-			print_drone_struct(&uart_packet_rx);
+			if (packet_type == COLOR_FRAME) {
+				drone_color_t drone_color;
+        memcpy(&drone_color, &databuf, sizeof(drone_color_t));
+        // leds[0].r = drone_color.r;
+        // leds[0].g = drone_color.g;
+        // leds[0].b = drone_color.b;
+			}
 		
 			/* reset state machine */
 			memset(databuf, 0, ESP_MAX_LEN);
@@ -356,7 +386,7 @@ void percevite_wifi_tx_loop() {
 		};
 
 		/* send to esp32 for changing its ssid */
-		tx_struct(&uart_packet_tx);
+		tx_data_struct(&uart_packet_tx);
 
 		// TODO: send_data_for_vo(&dr_data);
 
