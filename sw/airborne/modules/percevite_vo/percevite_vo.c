@@ -134,6 +134,9 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   if (norm_vrel < 0.1) {
     norm_vrel = 0.1;
   }
+  float vrel_body[2];
+  vrel_body[0] = cos(-robot1->head) * vrel[0] - sin(-robot1->head) * vrel[1];
+  vrel_body[1] = sin(-robot1->head) * vrel[0] + cos(-robot1->head) * vrel[1];
 
   // details on these two variables in Dennis Wijngaarden's prelim
   float tcpa = -float_vect_dot_product(drel, vrel, 2) / pow(norm_vrel, 2);
@@ -162,9 +165,12 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   // collision is imminent if tcpa > 0 and dcpa < RR
   if ((tcpa > 0) && (dcpa < RR)) { //} && (deltad > 1.5 * RR)) {
     float newvel_cart[2];
-    /* TODO: fix choosing L or R */
-    percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-
+    /* co-ordination problem solved by bias to take right.. */
+    if (vrel_body[1] <= 0.5) {
+      percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
+    } else {
+      percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
+    }
     cart2polar(newvel_cart, &resolved_vel_bdy, &resolved_head_bdy);
 
     /* TODO: rate and mag bound here and send to ctrl outerloop */
