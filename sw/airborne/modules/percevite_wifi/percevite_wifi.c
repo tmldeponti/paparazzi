@@ -47,7 +47,7 @@
 /* add pprz messages later */
 // #include "subsystems/datalink/telemetry.h"
 
-#define DBG
+// #define DBG
 
 FILE *drone_data_f;
 
@@ -387,8 +387,6 @@ void percevite_wifi_tx_loop() {
 
 		/* send to esp32 for changing its ssid */
 		tx_data_struct(&uart_packet_tx);
-
-		// TODO: send_data_for_vo(&dr_data);
 
 		// LOG: MAXDRONES for me = 2 (can't use ID 0x00 packet terminates..):(
 		// fmt: x,y,vel,head,time

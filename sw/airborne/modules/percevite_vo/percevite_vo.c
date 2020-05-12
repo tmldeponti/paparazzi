@@ -110,7 +110,6 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
     // return resolved velocity in cartesian;
 }
 
-
 void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
   static bool first_call = true;
   static float oldvel, oldhead;
@@ -122,7 +121,6 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   } 
   
   float drel[2], vrel[2]; 
-  
   drel[0] = robot1->pos.x - robot2->pos.x;
   drel[1] = robot1->pos.y - robot2->pos.y;
 
@@ -156,6 +154,11 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
 
   // commanded velocity and heading by VO
   float resolved_vel_bdy, resolved_head_bdy;
+  drone_color_t color = {0};
+  color.r = 0;
+  color.g = 200;
+  color.b = 0;
+
   // collision is imminent if tcpa > 0 and dcpa < RR
   if ((tcpa > 0) && (dcpa < RR)) { //} && (deltad > 1.5 * RR)) {
     float newvel_cart[2];
@@ -167,27 +170,10 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
     /* TODO: rate and mag bound here and send to ctrl outerloop */
     resolved_vel_bdy = min(max(resolved_vel_bdy, -3.0), 3.0);
     resolved_head_bdy = resolved_head_bdy + 0.0;
-
-    drone_color_t color = {0};
-    color.g = 200;
     
-    if (robot1->vel < resolved_vel_bdy) {
-      // BRIGHTER WHITE
-      color.r = 250;
-      color.g = 250;
-      color.b = 250; 
-      printf("Speed up\n");
-    } 
-    if (robot1->vel > resolved_vel_bdy) {
-      // DIMMER WHITE
-      color.r = 70;
-      color.g = 70;
-      color.b = 70; 
-      printf("Slow down\n");
-    }
     if (robot1->head < resolved_head_bdy) {
       // RED
-      color.r = 250;
+      color.r = 50;
       color.g = 0;
       color.b = 0; 
       printf("Rotate couter-cw\n");
@@ -196,10 +182,23 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
       // BLUE
       color.r = 0;
       color.g = 0;
-      color.b = 250; 
+      color.b = 50; 
       printf("Rotate cw\n");
     }
-    tx_led_struct(&color);
+    if (robot1->vel < resolved_vel_bdy) {
+      // BRIGHTER
+      color.r = (uint8_t) color.r * 2.0;
+      color.g = (uint8_t) color.g * 2.0;
+      color.b = (uint8_t) color.b * 2.0; 
+      printf("Speed up\n");
+    } 
+    if (robot1->vel > resolved_vel_bdy) {
+      // DIMMER
+      color.r = (uint8_t) color.r * 0.6;
+      color.g = (uint8_t) color.g * 0.6;
+      color.b = (uint8_t) color.b * 0.6; 
+      printf("Slow down\n");
+    }
     resolution_cmd[0] = resolved_vel_bdy;
     resolution_cmd[1] = resolved_head_bdy;
   }
@@ -208,7 +207,11 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   else {
     resolution_cmd[0] = oldvel;
     resolution_cmd[1] = oldhead;
+    color.r = 0;
+    color.g = 200;
+    color.b = 0;
   }
+  tx_led_struct(&color);
 }
 
 void vo_simulate_loop(drone_data_t* robot_sim) {
@@ -223,7 +226,7 @@ void percevite_vo_init(void) {
   #ifdef SIM
   drone1.pos.x = -25.0;
   drone1.pos.y = -25.0;
-  drone1.vel = 1.3;
+  drone1.vel = 0.8;
   drone1.head = (D2R) * 45.0;
 
   drone2.pos.x = -10.0;
@@ -245,10 +248,12 @@ void percevite_vo_periodic(void) {
   // overwrite dr_data for tx...
   #ifdef SIM
   if (SELF_ID == 1) {
+    drone2 = dr_data[2];
     vo_simulate_loop(&drone1);
     dr_data[SELF_ID] = drone1;
   } 
   if (SELF_ID == 2) {
+    drone1 = dr_data[1];
     vo_simulate_loop(&drone2);
     dr_data[SELF_ID] = drone2;
   }
@@ -269,8 +274,8 @@ void percevite_vo_periodic(void) {
   #endif
 
   printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-          drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head,
-          drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head);
+          drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head * R2D,
+          drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head * R2D);
 
 }
 
