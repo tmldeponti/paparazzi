@@ -397,7 +397,6 @@ void percevite_wifi_tx_loop() {
 			fprintf(drone_data_f, "%f,%f,", dr_data[id].vel, dr_data[id].head);
 		}
 		fprintf(drone_data_f, "%f\n", get_sys_time_float());
-	// }
 
 	// mutex, don't tx to esp when ack is being sent
   // if (esp.state!= ESP_RX_OK) {

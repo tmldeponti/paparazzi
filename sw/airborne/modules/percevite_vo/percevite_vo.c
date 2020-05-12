@@ -31,8 +31,6 @@
 
 #include "modules/percevite_vo/percevite_vo.h"
 
-FILE *vo_f;
-
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];
 
@@ -57,7 +55,7 @@ void calc_proj_matrix(const float *a, const float *b, float **c) {
   c[1][1] = a[1] * b[1] / inner_product;
 }
 
-void percevite_vo_resolve_by_project(drone_data_t *robot_a, float angle1, float angle2, float *centre, float *new_vel_a_bdy) {
+void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, float angle2, float *centre, float *new_vel_a_bdy) {
     
     float vel_a_bdy[2], vel_a_w[2];
     polar2cart(robot_a->vel, robot_a->head, vel_a_bdy);
@@ -113,7 +111,7 @@ void percevite_vo_resolve_by_project(drone_data_t *robot_a, float angle1, float 
 }
 
 
-void percevite_vo_detect(drone_data_t *robot1, drone_data_t *robot2) {
+void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
   static bool first_call = true;
   static float oldvel, oldhead;
   // hacky restore..
@@ -202,16 +200,14 @@ void percevite_vo_detect(drone_data_t *robot1, drone_data_t *robot2) {
       printf("Rotate cw\n");
     }
     tx_led_struct(&color);
-    #ifdef SIM
-    robot1->vel = resolved_vel_bdy;
-    robot1->head = resolved_head_bdy;
-    #endif
+    resolution_cmd[0] = resolved_vel_bdy;
+    resolution_cmd[1] = resolved_head_bdy;
   }
-  // if no collision predicted, don't resolve and be what you were
+  // if no collisions are predicted, don't resolve and be what you were
   // send the original velocity command back..
   else {
-    resolved_vel_bdy  = oldvel;
-    resolved_head_bdy = oldhead;
+    resolution_cmd[0] = oldvel;
+    resolution_cmd[1] = oldhead;
   }
 }
 
@@ -235,21 +231,15 @@ void percevite_vo_init(void) {
   drone2.vel = 0.4;
   drone2.head = (D2R) * 45.0;
   #endif
-
-  drone2.pos.x = 4.0;
-  drone2.pos.y = 0.0;
-  drone2.vel = 0.01;
-  drone2.head = (D2R) * 45.0;
-
-  // vo_f = fopen("vo.csv", "w+");
+  // // sitting duck test
+  // drone2.pos.x = 20.1;
+  // drone2.pos.y = 20.1;
+  // drone2.vel = 0.01;
+  // drone2.head = (D2R) * 45.0;
 }
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
-
-  static drone_color_t color = {.r = 50, .g = 100, .b = 40};
-  color.r += 20;
-  tx_led_struct(&color);
 
   // simulate what happens to both robots to later extern it to Percevite WiFi
   // overwrite dr_data for tx...
@@ -265,11 +255,18 @@ void percevite_vo_periodic(void) {
   #else
   // make copies from externed dr_data of percevite_wifi
   drone1 = dr_data[1];
-  // drone2 = dr_data[2];
+  drone2 = dr_data[2];
   #endif
 
+  float resolution_cmd[2];
   // change the vel and head of robot1
-  percevite_vo_detect(&drone1, &drone2);
+  percevite_vo_detect(&drone1, &drone2, resolution_cmd);
+
+  #ifdef SIM
+  // assume instant convergence
+  drone1.vel  = resolution_cmd[0];
+  drone1.head = resolution_cmd[1];
+  #endif
 
   printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
           drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head,
@@ -283,21 +280,4 @@ for (int it = 0; it < 2; it++) {
     printf("%f, ", projection_matrix[it][jt]);
   }
   printf("\n");
-}
-printf("\n"); 
-
-// TODO: remember to comment propagation of the drone which is not curr drone.. 
-void vo_simulate_loop(void) {
-  float del[2];
-  polar2cart(robot1.vel, robot1.head, del);
-  robot1.pos[0] += del[0];
-  robot1.pos[1] += del[1];
-
-  polar2cart(robot2.vel, robot2.head, del);
-  robot2.pos[0] += del[0];
-  robot2.pos[1] += del[1];
-
-  fprintf(vo_f, "%f,%f,%f,%f,%f,%f,%f,%f\n", 
-          robot1.pos[0], robot1.pos[1], robot1.vel, robot1.head,
-          robot2.pos[0], robot2.pos[1], robot2.vel, robot2.head);
 } */

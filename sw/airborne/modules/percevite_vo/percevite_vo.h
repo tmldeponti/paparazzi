@@ -36,21 +36,13 @@
 #define D2R (3.142/180.0)
 #define R2D (180.0/3.142)
 
-/* typedef struct {
-  float pos[2];
-  float vel;
-  float head;
-  float oldvel;
-  float oldhead;
-} robot_t; */
-
 /* utils */
 void polar2cart(float mag, float directn, float *cart);
 void cart2polar(float *vel_vec, float *mag, float *head);
 void calc_proj_matrix(const float *a, const float *b, float **c);
 
-void percevite_vo_resolve_by_project(drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
-void percevite_vo_detect(drone_data_t *robot1, drone_data_t *robot2);
+void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
+void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
 
 /* quarentined hacks */
 void vo_simulate_loop(drone_data_t* robot_sim);
