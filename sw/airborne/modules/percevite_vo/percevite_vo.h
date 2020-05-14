@@ -29,25 +29,71 @@
 /* dr_data[MAX_DRONES] */
 #include "modules/percevite_wifi/percevite_wifi.h"
 
-#define RR  2.0
+#define RR  2.5
 #define max(a,b)  ((a)>=(b)?(a):(b))
 #define min(a,b)  ((a)<=(b)?(a):(b))
 
 #define D2R (3.142/180.0)
 #define R2D (180.0/3.142)
 
+/* MAX_VEL for control and velocity obstacle */
+#define MAX_VEL 0.5
+
 /* utils */
 void polar2cart(float mag, float directn, float *cart);
 void cart2polar(float *vel_vec, float *mag, float *head);
 void calc_proj_matrix(const float *a, const float *b, float **c);
 
+/* velocity obstacle math */
 void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
-void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
+bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
 
 /* quarentined hacks */
 void vo_simulate_loop(drone_data_t* robot_sim);
 
+/* integrate vo+ctrl hack */
+void vel_ctrl(float velcmdbody_x, float velcmdbody_y);
+
+/* copy and send command to outerloop */
+void percevite_get_cmd(float *roll, float *pitch, float* yaw);
+
+/* init and dead reckon */
 extern void percevite_vo_init(void);
+
+/* [main functuion] detect and avoid */
 extern void percevite_vo_periodic(void);
+
+// horizontal control
+struct dr_state {
+  float x;   // world pos x
+  float y;   // world pos x
+  float vx;  // world vel x
+  float vy;  // world vel y
+  float yaw; // yaw
+};
+
+// horizontal commands
+struct dr_cmd {
+  float roll;      // body frame roll
+  float pitch;    // body frame pitch -ve for fwd
+  float yaw;      // body frame yaw
+  float thrust;   // body frame command z force
+};
+
+struct dr_state dr_state;
+struct dr_cmd dr_cmd;
+
+/* position control loop */
+extern void percevite_pos_ctrl(void);
+
+// bound a value to a range [min,max]
+inline float bound_f(float val, float min, float max) {
+	if (val > max) {
+		val = max;
+	} else if (val < min) {
+		val = min;
+	}
+	return val;
+}
 
 #endif  // PERCEVITE_VO_H

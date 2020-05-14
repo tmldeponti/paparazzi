@@ -31,6 +31,11 @@
 
 #include "modules/percevite_vo/percevite_vo.h"
 
+/* gps functions */
+#include "state.h"
+
+volatile bool collision = false;
+
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];
 
@@ -110,7 +115,7 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
     // return resolved velocity in cartesian;
 }
 
-void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
+bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
   static bool first_call = true;
   static float oldvel, oldhead;
   // hacky restore..
@@ -160,7 +165,7 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   static drone_color_t color = {0};
 
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR) && (deltad >  RR)) {
+  if ((tcpa > 0) && (dcpa < RR) && (deltad > RR)) {
     float newvel_cart[2];
     /* co-ordination problem solved by bias to take right.. */
     if (vrel_body[1] <= 0.5) {
@@ -204,6 +209,7 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
     }
     resolution_cmd[0] = resolved_vel_bdy;
     resolution_cmd[1] = resolved_head_bdy;
+    return true;
   }
   // if no collisions are predicted, don't resolve and be what you were
   // send the original velocity command back..
@@ -213,6 +219,7 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
     color.r = 0;
     color.g = 200;
     color.b = 0;
+    return false;
   }
   tx_led_struct(&color);
 }
@@ -238,14 +245,15 @@ void percevite_vo_init(void) {
   drone2.head = (D2R) * 45.0;
   #endif
   // from the back
-  drone2.pos.x = 50.1;
-  drone2.pos.y = 50.1;
+  drone2.pos.x = 0.9;
+  drone2.pos.y = 0.3;
   drone2.vel = 0.02;
   drone2.head = (D2R) * 45.0;
 }
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
+  printf("[POS] x: %f \t y: %f \t head: %f\n", dr_state.x, dr_state.y, dr_state.yaw * R2D);
 
   // simulate what happens to both robots to later extern it to Percevite WiFi
   // overwrite dr_data for tx...
@@ -263,14 +271,30 @@ void percevite_vo_periodic(void) {
   #else
   // make copies from externed dr_data of percevite_wifi
   // vo_simulate_loop(&drone2);
-  dr_data[2] = drone2;
-  drone1 = dr_data[1];
+  
+  // drone1 = dr_data[1];
   // drone2 = dr_data[2];
+
+  dr_data[2] = drone2;
+  // cyberzoo test (semi-SIM mode, sitting duck)
+  drone1.pos.x = dr_state.x; 
+  drone1.pos.y = dr_state.y;
+  drone1.vel   = stateGetHorizontalSpeedNorm_f();
+  drone1.head  = dr_state.yaw;
   #endif
 
   float resolution_cmd[2];
   // change the vel and head of robot1
-  percevite_vo_detect(&drone1, &drone2, resolution_cmd);
+  if (percevite_vo_detect(&drone1, &drone2, resolution_cmd)) {
+    // printf("[VELOBS] mode\n");
+    collision = true;
+    float vel_cmd_cart[2];
+    polar2cart(resolution_cmd[0], resolution_cmd[1], vel_cmd_cart);
+    // vel_ctrl(vel_cmd_cart[0], vel_cmd_cart[1]);
+  } else {
+    // printf("[POS] mode\n");
+    collision = false;
+  }
 
   #ifdef SIM
   // assume instant convergence
@@ -278,16 +302,66 @@ void percevite_vo_periodic(void) {
   drone1.head = resolution_cmd[1];
   #endif
 
-  printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-          drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head * R2D,
-          drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head * R2D);
+  // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+  //         drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head * R2D,
+  //         drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head * R2D);
 
 }
 
-/* print projection matrix
-for (int it = 0; it < 2; it++) {
-  for (int jt = 0; jt < 2; jt++) {
-    printf("%f, ", projection_matrix[it][jt]);
+#define FWD_VEL_CMD 0.2
+#define KP_POS      0.2
+#define KP_VEL      0.4
+#define MAX_BANK    0.5   // 26 deg max bank
+#define K_FF        0.0
+void percevite_pos_ctrl(void) {
+
+  struct NedCoor_f *pos_gps = stateGetPositionNed_f();
+  dr_state.x = pos_gps->x;
+  dr_state.y = pos_gps->y;
+
+  struct NedCoor_f *vel_gps = stateGetSpeedNed_f();
+  dr_state.vx = vel_gps->x;
+  dr_state.vy = vel_gps->y;
+  dr_state.yaw = stateGetNedToBodyEulers_f()->psi;
+
+  // cmd pos = origin
+	float curr_error_pos_w_x = (-1.2 - dr_state.x);
+	float curr_error_pos_w_y = (4.0 - dr_state.y);
+
+  double curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
+	double curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;
+
+  float vel_x_cmd_velFrame = curr_error_pos_x_velFrame * KP_POS; // FWD_VEL_CMD;
+	float vel_y_cmd_velFrame = curr_error_pos_y_velFrame * KP_POS;
+
+	vel_x_cmd_velFrame = bound_f(vel_x_cmd_velFrame, -MAX_VEL, MAX_VEL);
+	vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
+
+  if (!collision) {
+    vel_ctrl(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
   }
-  printf("\n");
-} */
+}
+
+void vel_ctrl(float velcmdbody_x, float velcmdbody_y) {
+
+  float vel_x_est_velFrame =  cos(dr_state.yaw) * dr_state.vx + sin(dr_state.yaw) * dr_state.vy;
+	float vel_y_est_velFrame = -sin(dr_state.yaw) * dr_state.vx + cos(dr_state.yaw) * dr_state.vy;
+
+	float curr_error_vel_x = velcmdbody_x - vel_x_est_velFrame;
+	float curr_error_vel_y = velcmdbody_y - vel_y_est_velFrame;
+
+	float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmdbody_x;
+	float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmdbody_y;
+
+  dr_cmd.pitch = -1 * bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
+  dr_cmd.roll  =      bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
+  dr_cmd.yaw   = 0;            // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
+  
+}
+
+void percevite_get_cmd(float *roll, float *pitch, float* yaw) {
+  *roll  = (dr_cmd.roll);
+  *pitch = (dr_cmd.pitch);
+  *yaw   = (dr_cmd.yaw);
+  // printf("[CMD] R: %f, P: %f, Y: %f\n", R2D * dr_cmd.roll, R2D * dr_cmd.pitch, R2D * dr_cmd.yaw);
+}

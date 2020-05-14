@@ -8,6 +8,7 @@
     <waypoint name="HOME" x="0.0" y="0.0"/>
     <waypoint name="START_PERC" x="-3.5" y="0.0"/>
     <waypoint name="END_PERC" x="3.5" y="0.0"/>
+    <waypoint name="TRY_PT" x="0.5" y="3.0"/>
     <waypoint name="CLIMB" x="1.2" y="-0.6"/>
     <waypoint name="STDBY" x="-0.7" y="-0.8"/>
     <waypoint name="TD" x="0.8" y="-1.7"/>
@@ -31,7 +32,8 @@
     </block>
     <block name="Geo init">
       <while cond="LessThan(NavBlockTime(), 10)"/>
-      <call_once fun="NavSetGroundReferenceHere()"/>
+      <!-- Enable when outdoor -->
+      <!--call_once fun="NavSetGroundReferenceHere()"/-->
       <!--<call_once fun="NavSetAltitudeReferenceHere()"/>-->
     </block>
     <block name="Holding point">

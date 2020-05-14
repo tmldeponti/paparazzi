@@ -330,10 +330,6 @@ static void clear_drone_status(void) {
 void percevite_wifi_init() {
 
 	drone_data_f = fopen("drone_data.csv", "w+");
-
-	/* check pprz message for drone1 and drone2 (sort of like esp heartbeat) */
-	// register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_PERCEVITE_WIFI, msg_cb);
-
 	clear_drone_status();
 
 	/* GPS init

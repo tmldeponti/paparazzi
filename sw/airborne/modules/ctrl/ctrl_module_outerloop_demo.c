@@ -32,6 +32,8 @@
 #include "firmwares/rotorcraft/stabilization/stabilization_attitude_rc_setpoint.h"
 #include "autopilot.h"
 
+#include "modules/percevite_vo/percevite_vo.h"
+
 // Own Variables
 
 struct ctrl_module_demo_struct {
@@ -69,16 +71,20 @@ void guidance_h_module_read_rc(void)
   stabilization_attitude_read_rc_setpoint_eulers(&ctrl.rc_sp, autopilot.in_flight, false, false);
 }
 
-
+#define CMD_ALT -1.5
 void guidance_h_module_run(bool in_flight)
 {
   // YOUR NEW HORIZONTAL OUTERLOOP CONTROLLER GOES HERE
   // ctrl.cmd = CallMyNewHorizontalOuterloopControl(ctrl);
-  float roll = 0.0;
+  float roll  = 0.0;
   float pitch = 0.0;
+  float yaw   = 0.0;
 
-  ctrl.cmd.phi = ANGLE_BFP_OF_REAL(roll);
+  percevite_get_cmd(&roll, &pitch, &yaw);
+  // ctrl.cmd.alt   = POS_BFP_OF_REAL(CMD_ALT);
+  ctrl.cmd.phi   = ANGLE_BFP_OF_REAL(roll);
   ctrl.cmd.theta = ANGLE_BFP_OF_REAL(pitch);
+  ctrl.cmd.psi   = ANGLE_BFP_OF_REAL(yaw);
 
   stabilization_attitude_set_rpy_setpoint_i(&(ctrl.cmd));
   stabilization_attitude_run(in_flight);
