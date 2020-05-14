@@ -8,7 +8,7 @@
     <file name="percevite_wifi.h"/>
   </header>
   <init fun="percevite_wifi_init()"/>
-  <periodic fun="percevite_wifi_tx_loop()" freq="10.0" autorun="TRUE"/>
+  <periodic fun="percevite_wifi_tx_loop()" freq="10.0" autorun="FALSE"/>
   <event fun="percevite_wifi_rx_event()"/>
   <makefile>
     <file name="percevite_wifi.c"/>

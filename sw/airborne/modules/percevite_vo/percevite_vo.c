@@ -157,13 +157,10 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
 
   // commanded velocity and heading by VO
   float resolved_vel_bdy, resolved_head_bdy;
-  drone_color_t color = {0};
-  color.r = 0;
-  color.g = 200;
-  color.b = 0;
+  static drone_color_t color = {0};
 
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR)) { //} && (deltad > 1.5 * RR)) {
+  if ((tcpa > 0) && (dcpa < RR) && (deltad >  RR)) {
     float newvel_cart[2];
     /* co-ordination problem solved by bias to take right.. */
     if (vrel_body[1] <= 0.5) {
@@ -174,36 +171,36 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
     cart2polar(newvel_cart, &resolved_vel_bdy, &resolved_head_bdy);
 
     /* TODO: rate and mag bound here and send to ctrl outerloop */
-    resolved_vel_bdy = min(max(resolved_vel_bdy, -3.0), 3.0);
+    resolved_vel_bdy = min(max(resolved_vel_bdy, -MAX_VEL), MAX_VEL);
     resolved_head_bdy = resolved_head_bdy + 0.0;
     
     if (robot1->head < resolved_head_bdy) {
       // RED
-      color.r = 50;
+      color.r = 100;
       color.g = 0;
       color.b = 0; 
-      printf("Rotate couter-cw\n");
+      printf("\n<<<<<\n");
     }
     if (robot1->head > resolved_head_bdy) {
       // BLUE
       color.r = 0;
       color.g = 0;
-      color.b = 50; 
-      printf("Rotate cw\n");
+      color.b = 100; 
+      printf("\n>>>>>\n");
     }
     if (robot1->vel < resolved_vel_bdy) {
+      // DIMMER
+      color.r = (uint8_t) color.r * 0.7;
+      color.g = (uint8_t) color.g * 0.7;
+      color.b = (uint8_t) color.b * 0.7; 
+      printf("\n^^^^^^^^\n");
+    } 
+    if (robot1->vel > resolved_vel_bdy) {
       // BRIGHTER
       color.r = (uint8_t) color.r * 2.0;
       color.g = (uint8_t) color.g * 2.0;
       color.b = (uint8_t) color.b * 2.0; 
-      printf("Speed up\n");
-    } 
-    if (robot1->vel > resolved_vel_bdy) {
-      // DIMMER
-      color.r = (uint8_t) color.r * 0.6;
-      color.g = (uint8_t) color.g * 0.6;
-      color.b = (uint8_t) color.b * 0.6; 
-      printf("Slow down\n");
+      printf("\n.......\n");
     }
     resolution_cmd[0] = resolved_vel_bdy;
     resolution_cmd[1] = resolved_head_bdy;
@@ -240,11 +237,11 @@ void percevite_vo_init(void) {
   drone2.vel = 0.4;
   drone2.head = (D2R) * 45.0;
   #endif
-  // // sitting duck test
-  // drone2.pos.x = 20.1;
-  // drone2.pos.y = 20.1;
-  // drone2.vel = 0.01;
-  // drone2.head = (D2R) * 45.0;
+  // from the back
+  drone2.pos.x = 50.1;
+  drone2.pos.y = 50.1;
+  drone2.vel = 0.02;
+  drone2.head = (D2R) * 45.0;
 }
 
 /* 5Hz periodic loop */
@@ -265,8 +262,10 @@ void percevite_vo_periodic(void) {
   }
   #else
   // make copies from externed dr_data of percevite_wifi
+  // vo_simulate_loop(&drone2);
+  dr_data[2] = drone2;
   drone1 = dr_data[1];
-  drone2 = dr_data[2];
+  // drone2 = dr_data[2];
   #endif
 
   float resolution_cmd[2];

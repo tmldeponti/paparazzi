@@ -99,11 +99,6 @@ void tx_led_struct(const drone_color_t *drone_color) {
 // tx: send struct to esp32
 static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 
-	printf("[tx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
-		uart_packet_tx->info.drone_id,
-		uart_packet_tx->data.pos.x, uart_packet_tx->data.pos.y,
-		uart_packet_tx->data.vel,   uart_packet_tx->data.head);
-
 	/* uart_packet_t = drone_info_t + drone_data_t */
 
 	uint8_t tx_string[ESP_MAX_LEN] = {0};
@@ -111,6 +106,11 @@ static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 	memcpy(tx_string, uart_packet_tx, sizeof(uart_packet_t));
 
 	#ifdef DBG
+	printf("[tx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
+	uart_packet_tx->info.drone_id,
+	uart_packet_tx->data.pos.x, uart_packet_tx->data.pos.y,
+	uart_packet_tx->data.vel,   uart_packet_tx->data.head);
+
 	// check via wireshark
 	printf("ESP SSID should be:\n");
 	for (int i = 0; i < sizeof(uart_packet_t); i++) {
