@@ -64,8 +64,7 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
   vec2f_t pos;
-  float vel;
-  float head;
+  vec2f_t vel;
 } drone_data_t;
 
 typedef struct __attribute__((packed)) {

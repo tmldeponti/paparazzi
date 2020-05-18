@@ -128,7 +128,7 @@ static void print_drone_struct(uart_packet_t *uart_packet_rx) {
 	printf("[rx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
 					uart_packet_rx->info.drone_id,
 					uart_packet_rx->data.pos.x, uart_packet_rx->data.pos.y,
-					uart_packet_rx->data.vel, uart_packet_rx->data.head);
+					uart_packet_rx->data.vel.x, uart_packet_rx->data.vel.y);
 }
 
 
@@ -322,8 +322,8 @@ static void clear_drone_status(void) {
 		// initialize all drones in the tropical waters of eastern Altanic ocean, facing the artic
 		dr_data[id].pos.x = 0.0;
 		dr_data[id].pos.y = 0.0;
-		dr_data[id].vel   = 0.0;
-		dr_data[id].head  = 0.0;
+		dr_data[id].vel.x = 0.0;
+		dr_data[id].vel.y = 0.0;
 	}
 }
 
@@ -353,15 +353,19 @@ void percevite_wifi_init() {
 void percevite_wifi_tx_loop() {
 	// bool gps_valid = stateIsLocalCoordinateValid();
 	// if (gps_valid) {
-		struct NedCoor_f *gpspos = stateGetPositionNed_f();
-		float gpsvel = stateGetHorizontalSpeedNorm_f();
+		struct NedCoor_f *pos_gps = stateGetPositionNed_f();
+		struct NedCoor_f *vel_gps = stateGetSpeedNed_f();
+		
+		// for yaw..
 		struct FloatEulers *att = stateGetNedToBodyEulers_f();
 
+		// float gpsvel = stateGetHorizontalSpeedNorm_f();
+
 		#ifndef SIM
-		dr_data[SELF_ID].pos.x = gpspos->x;
-		dr_data[SELF_ID].pos.y = gpspos->y;
-		dr_data[SELF_ID].vel   = gpsvel;   
-		dr_data[SELF_ID].head  = att->psi;
+		dr_data[SELF_ID].pos.x = pos_gps->x;
+		dr_data[SELF_ID].pos.y = pos_gps->y;
+		dr_data[SELF_ID].vel.x = vel_gps->x;   
+		dr_data[SELF_ID].vel.y = vel_gps->y;
 		#endif
 
 		// hacky ways to make them not null terminated...
@@ -376,8 +380,10 @@ void percevite_wifi_tx_loop() {
 					.x = dr_data[SELF_ID].pos.x + 0.1,
 					.y = dr_data[SELF_ID].pos.y + 0.1,
 				},
-				.vel = dr_data[SELF_ID].vel + 0.01,
-				.head = dr_data[SELF_ID].head + 0.01,
+				.vel = {
+					.x = dr_data[SELF_ID].vel.x + 0.01,
+					.y = dr_data[SELF_ID].vel.y + 0.01,
+				}
 			},
 		};
 
@@ -388,7 +394,7 @@ void percevite_wifi_tx_loop() {
 		// fmt: x,y,vel,head,time
 		for (int id = 1; id < 3; id++) {
 			fprintf(drone_data_f, "%f,%f,", dr_data[id].pos.x, dr_data[id].pos.y);
-			fprintf(drone_data_f, "%f,%f,", dr_data[id].vel, dr_data[id].head);
+			fprintf(drone_data_f, "%f,%f,", dr_data[id].vel.x, dr_data[id].vel.y);
 		}
 		fprintf(drone_data_f, "%f\n", get_sys_time_float());
 

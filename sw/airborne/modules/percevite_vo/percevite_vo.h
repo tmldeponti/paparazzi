@@ -35,9 +35,10 @@
 
 #define D2R (3.142/180.0)
 #define R2D (180.0/3.142)
+#define PI (3.141592)
 
 /* MAX_VEL for control and velocity obstacle */
-#define MAX_VEL 0.5
+#define MAX_VEL 0.6
 
 /* utils */
 void polar2cart(float mag, float directn, float *cart);
@@ -52,7 +53,7 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
 void vo_simulate_loop(drone_data_t* robot_sim);
 
 /* integrate vo+ctrl hack */
-void vel_ctrl(float velcmdbody_x, float velcmdbody_y);
+void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y);
 
 /* copy and send command to outerloop */
 void percevite_get_cmd(float *roll, float *pitch, float* yaw);
@@ -94,6 +95,17 @@ inline float bound_f(float val, float min, float max) {
 		val = min;
 	}
 	return val;
+}
+
+// scale angles to -180 - 180
+inline float wrap_ang(float ang) {
+	if (ang < -PI) {
+		ang += 2 * PI;
+	}
+	if (ang > PI) {
+		ang -= 2 * PI;
+	}
+	return ang;
 }
 
 #endif  // PERCEVITE_VO_H

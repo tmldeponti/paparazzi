@@ -44,8 +44,8 @@
     
     <module name="ctrl_module_outerloop_demo"/>
     <module name="percevite_wifi">
-      <!-- TODO: Percevite, change aircraft here -->
-      <define name="SELF_ID" value="1"/>
+    <!-- TODO: Percevite, change aircraft here -->
+    <define name="SELF_ID" value="1"/>
     </module>
     <module name="percevite_vo"/>
   </firmware>
@@ -67,7 +67,6 @@
   <section name="MIXING" prefix="MOTOR_MIXING_">
     <define name="TYPE" value="QUAD_X"/>
   </section>
-
   <command_laws>
     <call fun="motor_mixing_run(autopilot_get_motors_on(),FALSE,values)"/>
     <set servo="TOP_LEFT" value="motor_mixing.commands[MOTOR_FRONT_LEFT]"/>

@@ -62,12 +62,12 @@ void calc_proj_matrix(const float *a, const float *b, float **c) {
 
 void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, float angle2, float *centre, float *new_vel_a_bdy) {
     
-    float vel_a_bdy[2], vel_a_w[2];
-    polar2cart(robot_a->vel, robot_a->head, vel_a_bdy);
+    float vel_a_w[2];
+    // polar2cart(robot_a->vel, robot_a->head, vel_a_bdy);
 
-    // body frame to world frame velocity
-    vel_a_w[0] = robot_a->pos.x + vel_a_bdy[0];
-    vel_a_w[1] = robot_a->pos.y + vel_a_bdy[1];
+    // body frame to world frame velocity vector
+    vel_a_w[0] = robot_a->pos.x + robot_a->vel.x;
+    vel_a_w[1] = robot_a->pos.y + robot_a->vel.y;
 
     float yintercept = centre[1] - (tanf(angle1) * centre[0]);
     float xintercept = 0.0;
@@ -100,135 +100,75 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
         float_mat_vect_mul(projected_pt, projection_matrix, cc_vector, 2, 2);
         projected_pt[1] = projected_pt[1] + line_prop[1];
 
-        // resolved velocity on collision cone
-        // plt.plot(newvela[0], newvela[1], 'og', alpha=0.2)
-
         // convert back to body frame velocities, make this the new body frame velocity
         new_vel_a_bdy[0] = projected_pt[0] - robot_a->pos.x;
         new_vel_a_bdy[1] = projected_pt[1] - robot_a->pos.y;
+
+        // new_vel_a_bdy[0] = new_vel_a_bdy[0] + 0.4;
+
+        printf("resolved: %f \t %f (m/s)\n", new_vel_a_bdy[0], new_vel_a_bdy[1]);
         
     } else {
         // if norm is lesser, give back old vel.. (not sure)
-        new_vel_a_bdy[0] = vel_a_bdy[0];
-        new_vel_a_bdy[1] = vel_a_bdy[1];
+        new_vel_a_bdy[0] = robot_a->vel.x;
+        new_vel_a_bdy[1] = robot_a->vel.y;
     }
     // return resolved velocity in cartesian;
 }
 
 bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
-  static bool first_call = true;
-  static float oldvel, oldhead;
-  // hacky restore..
-  if (first_call) {
-    oldvel  = robot1->vel;
-    oldhead = robot1->head;
-    first_call = false;
-  } 
   
   float drel[2], vrel[2]; 
   drel[0] = robot1->pos.x - robot2->pos.x;
   drel[1] = robot1->pos.y - robot2->pos.y;
 
-  float robot1vel_cart[2], robot2vel_cart[2];
-  polar2cart(robot1->vel, robot1->head, robot1vel_cart);
-  polar2cart(robot2->vel, robot2->head, robot2vel_cart);
-  vrel[0] = robot1vel_cart[0] - robot2vel_cart[0];
-  vrel[1] = robot1vel_cart[1] - robot2vel_cart[1];
+  vrel[0] = robot1->vel.x - robot2->vel.x;
+  vrel[1] = robot1->vel.y - robot2->vel.y;
 
   float norm_vrel = float_vect_norm(vrel, 2);
   if (norm_vrel < 0.1) {
     norm_vrel = 0.1;
   }
-  float vrel_body[2];
-  vrel_body[0] = cos(-robot1->head) * vrel[0] - sin(-robot1->head) * vrel[1];
-  vrel_body[1] = sin(-robot1->head) * vrel[0] + cos(-robot1->head) * vrel[1];
 
   // details on these two variables in Dennis Wijngaarden's prelim
   float tcpa = -float_vect_dot_product(drel, vrel, 2) / pow(norm_vrel, 2);
   float dcpa = sqrtf((fabsf(pow(float_vect_norm(drel, 2), 2) - (pow(tcpa, 2) * pow(float_vect_norm(vrel, 2), 2)))));
   // printf("tcpa: %f, dcpa: %f\n", tcpa, dcpa);
 
-  float angleb = atan2((robot2->pos.y - robot1->pos.y), (robot2->pos.x - robot1->pos.x));
+  float angleb = atan2f((robot2->pos.y - robot1->pos.y), (robot2->pos.x - robot1->pos.x));
   float deltad = float_vect_norm(drel, 2);
   float angleb1 = angleb - atan(RR / deltad);
   float angleb2 = angleb + atan(RR / deltad);
 
-  float robot2_offset[2];
-  polar2cart(robot2->vel, robot2->head, robot2_offset);
-
   float centre[2];
-  centre[0] = robot1->pos.x + robot2_offset[0]; 
-  centre[1] = robot1->pos.y + robot2_offset[1];
-
-  // commanded velocity and heading by VO
-  float resolved_vel_bdy, resolved_head_bdy;
-  static drone_color_t color = {0};
+  centre[0] = robot1->pos.x + robot2->vel.x; 
+  centre[1] = robot1->pos.y + robot2->vel.y;
 
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR) && (deltad > RR)) {
+  if ((tcpa > 0) && (dcpa < RR) && ((deltad > RR))) {
+    // TODO: conditions to avoid!! Heading is lost now.. 
+    //if (va[1] < vrel[1]) ...
     float newvel_cart[2];
-    /* co-ordination problem solved by bias to take right.. */
-    if (vrel_body[1] <= 0.5) {
-      percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-    } else {
-      percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
-    }
-    cart2polar(newvel_cart, &resolved_vel_bdy, &resolved_head_bdy);
+    percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
 
     /* TODO: rate and mag bound here and send to ctrl outerloop */
-    resolved_vel_bdy = min(max(resolved_vel_bdy, -MAX_VEL), MAX_VEL);
-    resolved_head_bdy = resolved_head_bdy + 0.0;
+    resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
+    resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
     
-    if (robot1->head < resolved_head_bdy) {
-      // RED
-      color.r = 100;
-      color.g = 0;
-      color.b = 0; 
-      printf("\n<<<<<\n");
-    }
-    if (robot1->head > resolved_head_bdy) {
-      // BLUE
-      color.r = 0;
-      color.g = 0;
-      color.b = 100; 
-      printf("\n>>>>>\n");
-    }
-    if (robot1->vel < resolved_vel_bdy) {
-      // DIMMER
-      color.r = (uint8_t) color.r * 0.7;
-      color.g = (uint8_t) color.g * 0.7;
-      color.b = (uint8_t) color.b * 0.7; 
-      printf("\n^^^^^^^^\n");
-    } 
-    if (robot1->vel > resolved_vel_bdy) {
-      // BRIGHTER
-      color.r = (uint8_t) color.r * 2.0;
-      color.g = (uint8_t) color.g * 2.0;
-      color.b = (uint8_t) color.b * 2.0; 
-      printf("\n.......\n");
-    }
-    resolution_cmd[0] = resolved_vel_bdy;
-    resolution_cmd[1] = resolved_head_bdy;
     return true;
   }
   // if no collisions are predicted, don't resolve and be what you were
   // send the original velocity command back..
   else {
-    resolution_cmd[0] = oldvel;
-    resolution_cmd[1] = oldhead;
-    color.r = 0;
-    color.g = 200;
-    color.b = 0;
+    resolution_cmd[0] = 0.5;
+    resolution_cmd[1] = 0;
     return false;
   }
-  tx_led_struct(&color);
 }
 
 void vo_simulate_loop(drone_data_t* robot_sim) {
-  float del[2];
-  polar2cart(robot_sim->vel, robot_sim->head, del);
-  robot_sim->pos.x += del[0];
-  robot_sim->pos.y += del[1];
+  robot_sim->pos.x += robot_sim->vel.x;
+  robot_sim->pos.y += robot_sim->vel.y;
 }
 
 drone_data_t drone1, drone2;
@@ -245,15 +185,14 @@ void percevite_vo_init(void) {
   drone2.head = (D2R) * 45.0;
   #endif
   // from the back
-  drone2.pos.x = 0.9;
-  drone2.pos.y = 0.3;
-  drone2.vel = 0.02;
-  drone2.head = (D2R) * 45.0;
+  drone2.pos.x = 0.0;
+  drone2.pos.y = 0.0;
+  drone2.vel.x = 0.01;
+  drone2.vel.y = 0.01;
 }
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
-  printf("[POS] x: %f \t y: %f \t head: %f\n", dr_state.x, dr_state.y, dr_state.yaw * R2D);
 
   // simulate what happens to both robots to later extern it to Percevite WiFi
   // overwrite dr_data for tx...
@@ -270,7 +209,7 @@ void percevite_vo_periodic(void) {
   }
   #else
   // make copies from externed dr_data of percevite_wifi
-  // vo_simulate_loop(&drone2);
+  vo_simulate_loop(&drone2);
   
   // drone1 = dr_data[1];
   // drone2 = dr_data[2];
@@ -279,20 +218,22 @@ void percevite_vo_periodic(void) {
   // cyberzoo test (semi-SIM mode, sitting duck)
   drone1.pos.x = dr_state.x; 
   drone1.pos.y = dr_state.y;
-  drone1.vel   = stateGetHorizontalSpeedNorm_f();
-  drone1.head  = dr_state.yaw;
+  drone1.vel.x = dr_state.vx;
+  drone1.vel.y = dr_state.vy;
   #endif
 
+  // resolution command changes the vel and head of robot1 to avoid collision
   float resolution_cmd[2];
-  // change the vel and head of robot1
+  
   if (percevite_vo_detect(&drone1, &drone2, resolution_cmd)) {
-    // printf("[VELOBS] mode\n");
+    printf("[VELOBS] mode\n");
     collision = true;
-    float vel_cmd_cart[2];
-    polar2cart(resolution_cmd[0], resolution_cmd[1], vel_cmd_cart);
-    // vel_ctrl(vel_cmd_cart[0], vel_cmd_cart[1]);
+
+    // resolved yaw? nah! Instead translate in lateral plane rather than change heading..
+    // dr_cmd.yaw = resolution_cmd[1];
+    lateral_vel_ctrl(resolution_cmd[0] + 0.2, resolution_cmd[1]);
   } else {
-    // printf("[POS] mode\n");
+    printf("[POS] mode\n");
     collision = false;
   }
 
@@ -302,17 +243,13 @@ void percevite_vo_periodic(void) {
   drone1.head = resolution_cmd[1];
   #endif
 
-  // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-  //         drone1.pos.x, drone1.pos.y, drone1.vel, drone1.head * R2D,
-  //         drone2.pos.x, drone2.pos.y, drone2.vel, drone2.head * R2D);
-
+  printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+          drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
+          drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
 }
 
-#define FWD_VEL_CMD 0.2
+// #define FWD_VEL_CMD 0.2
 #define KP_POS      0.2
-#define KP_VEL      0.4
-#define MAX_BANK    0.5   // 26 deg max bank
-#define K_FF        0.0
 void percevite_pos_ctrl(void) {
 
   struct NedCoor_f *pos_gps = stateGetPositionNed_f();
@@ -325,8 +262,8 @@ void percevite_pos_ctrl(void) {
   dr_state.yaw = stateGetNedToBodyEulers_f()->psi;
 
   // cmd pos = origin
-	float curr_error_pos_w_x = (-1.2 - dr_state.x);
-	float curr_error_pos_w_y = (4.0 - dr_state.y);
+	float curr_error_pos_w_x = (3.8 - dr_state.x);
+	float curr_error_pos_w_y = (0.8 - dr_state.y);
 
   double curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
 	double curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;
@@ -338,25 +275,28 @@ void percevite_pos_ctrl(void) {
 	vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
 
   if (!collision) {
-    vel_ctrl(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
+    float yaw = atan2f(curr_error_pos_w_y, curr_error_pos_w_x);
+    lateral_vel_ctrl(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
+    dr_cmd.yaw = yaw;
   }
 }
 
-void vel_ctrl(float velcmdbody_x, float velcmdbody_y) {
+#define KP_VEL      0.2
+#define K_FF        0.0
+#define MAX_BANK    0.5   // 26 deg max bank
+void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y) {
 
   float vel_x_est_velFrame =  cos(dr_state.yaw) * dr_state.vx + sin(dr_state.yaw) * dr_state.vy;
 	float vel_y_est_velFrame = -sin(dr_state.yaw) * dr_state.vx + cos(dr_state.yaw) * dr_state.vy;
 
-	float curr_error_vel_x = velcmdbody_x - vel_x_est_velFrame;
-	float curr_error_vel_y = velcmdbody_y - vel_y_est_velFrame;
+	float curr_error_vel_x = velcmd_body_x - vel_x_est_velFrame;
+	float curr_error_vel_y = velcmd_body_y - vel_y_est_velFrame;
 
-	float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmdbody_x;
-	float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmdbody_y;
+	float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmd_body_x;
+	float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmd_body_y;
 
   dr_cmd.pitch = -1 * bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
-  dr_cmd.roll  =      bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);
-  dr_cmd.yaw   = 0;            // TODO: yaw towards goal -> atan2(curr_error_pos_w_y, curr_error_pos_w_x);
-  
+  dr_cmd.roll  = bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);  
 }
 
 void percevite_get_cmd(float *roll, float *pitch, float* yaw) {
