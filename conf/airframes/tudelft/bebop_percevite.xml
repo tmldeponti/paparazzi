@@ -44,8 +44,8 @@
     
     <module name="ctrl_module_outerloop_demo"/>
     <module name="percevite_wifi">
-    <!-- TODO: Percevite, change aircraft here -->
-    <define name="SELF_ID" value="1"/>
+      <!-- TODO: Percevite, change aircraft here -->
+      <define name="SELF_ID" value="2"/>
     </module>
     <module name="percevite_vo"/>
   </firmware>

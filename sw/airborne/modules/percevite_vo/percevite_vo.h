@@ -26,7 +26,7 @@
 #ifndef PERCEVITE_VO_H
 #define PERCEVITE_VO_H
 
-/* dr_data[MAX_DRONES] */
+/* for externed dr_data[MAX_DRONES] */
 #include "modules/percevite_wifi/percevite_wifi.h"
 
 #define RR  2.5
@@ -40,31 +40,20 @@
 /* MAX_VEL for control and velocity obstacle */
 #define MAX_VEL 0.6
 
-/* utils */
-void polar2cart(float mag, float directn, float *cart);
-void cart2polar(float *vel_vec, float *mag, float *head);
-void calc_proj_matrix(const float *a, const float *b, float **c);
-
-/* velocity obstacle math */
-void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
-bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
-
-/* quarentined hacks */
-void vo_simulate_loop(drone_data_t* robot_sim);
-
-/* integrate vo+ctrl hack */
-void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y);
-
-/* copy and send command to outerloop */
-void percevite_get_cmd(float *roll, float *pitch, float* yaw);
-
-/* init and dead reckon */
+/* VO init: dummy init */
 extern void percevite_vo_init(void);
 
-/* [main functuion] detect and avoid */
+/* VO periodic: detect and avoid */
 extern void percevite_vo_periodic(void);
 
-// horizontal control
+/* position control: cmd loop */
+extern void lateral_pos_ctrl(void);
+/* position control: lateral velocity control loop, shared by VO */
+void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y);
+/* position control: copy and send command to outerloop */
+void percevite_get_cmd(float *roll, float *pitch, float* yaw);
+
+// dr_state is a copy of dr_data, used for position control
 struct dr_state {
   float x;   // world pos x
   float y;   // world pos x
@@ -73,7 +62,7 @@ struct dr_state {
   float yaw; // yaw
 };
 
-// horizontal commands
+// final struct holding commands to attitude outerloop
 struct dr_cmd {
   float roll;      // body frame roll
   float pitch;    // body frame pitch -ve for fwd
@@ -81,11 +70,18 @@ struct dr_cmd {
   float thrust;   // body frame command z force
 };
 
+// declare pos control and cmd structs
 struct dr_state dr_state;
 struct dr_cmd dr_cmd;
 
-/* position control loop */
-extern void percevite_pos_ctrl(void);
+/* hero functions: velocity obstacle math */
+void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
+bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
+
+/* utils */
+void polar2cart(float mag, float directn, float *cart);
+void cart2polar(float *vel_vec, float *mag, float *head);
+void calc_proj_matrix(const float *a, const float *b, float **c);
 
 // bound a value to a range [min,max]
 inline float bound_f(float val, float min, float max) {
@@ -107,5 +103,8 @@ inline float wrap_ang(float ang) {
 	}
 	return ang;
 }
+
+/* quarantained hacks */
+void vo_simulate_loop(drone_data_t* robot_sim);
 
 #endif  // PERCEVITE_VO_H

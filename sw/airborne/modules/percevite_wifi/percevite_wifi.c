@@ -359,14 +359,10 @@ void percevite_wifi_tx_loop() {
 		// for yaw..
 		struct FloatEulers *att = stateGetNedToBodyEulers_f();
 
-		// float gpsvel = stateGetHorizontalSpeedNorm_f();
-
-		#ifndef SIM
 		dr_data[SELF_ID].pos.x = pos_gps->x;
 		dr_data[SELF_ID].pos.y = pos_gps->y;
 		dr_data[SELF_ID].vel.x = vel_gps->x;   
 		dr_data[SELF_ID].vel.y = vel_gps->y;
-		#endif
 
 		// hacky ways to make them not null terminated...
 		uart_packet_t uart_packet_tx = {

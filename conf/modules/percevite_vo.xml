@@ -9,7 +9,7 @@
   <init fun="percevite_vo_init()"/>
   <!-- Joystick's ATT mode is autorun -->
   <periodic fun="percevite_vo_periodic()" freq="8.0" autorun="TRUE"/>
-  <periodic fun="percevite_pos_ctrl()" freq="128.0" autorun="TRUE"/>
+  <periodic fun="lateral_pos_ctrl()" freq="128.0" autorun="TRUE"/>
   <makefile>
     <file name="percevite_vo.c"/>
   </makefile>

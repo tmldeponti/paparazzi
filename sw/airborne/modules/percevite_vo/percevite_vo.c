@@ -173,54 +173,16 @@ void vo_simulate_loop(drone_data_t* robot_sim) {
 
 drone_data_t drone1, drone2;
 void percevite_vo_init(void) {
-  #ifdef SIM
-  drone1.pos.x = -25.0;
-  drone1.pos.y = -25.0;
-  drone1.vel = 0.8;
-  drone1.head = (D2R) * 45.0;
-
-  drone2.pos.x = -10.0;
-  drone2.pos.y = -10.0;
-  drone2.vel = 0.4;
-  drone2.head = (D2R) * 45.0;
-  #endif
-  // from the back
-  drone2.pos.x = 0.0;
-  drone2.pos.y = 0.0;
-  drone2.vel.x = 0.01;
-  drone2.vel.y = 0.01;
+  // VO init not required when not SIMulating
 }
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
 
   // simulate what happens to both robots to later extern it to Percevite WiFi
-  // overwrite dr_data for tx...
-  #ifdef SIM
-  if (SELF_ID == 1) {
-    drone2 = dr_data[2];
-    vo_simulate_loop(&drone1);
-    dr_data[SELF_ID] = drone1;
-  } 
-  if (SELF_ID == 2) {
-    drone1 = dr_data[1];
-    vo_simulate_loop(&drone2);
-    dr_data[SELF_ID] = drone2;
-  }
-  #else
-  // make copies from externed dr_data of percevite_wifi
-  vo_simulate_loop(&drone2);
-  
-  // drone1 = dr_data[1];
-  // drone2 = dr_data[2];
-
-  dr_data[2] = drone2;
-  // cyberzoo test (semi-SIM mode, sitting duck)
-  drone1.pos.x = dr_state.x; 
-  drone1.pos.y = dr_state.y;
-  drone1.vel.x = dr_state.vx;
-  drone1.vel.y = dr_state.vy;
-  #endif
+  // overwrite dr_data for tx...  
+  drone1 = dr_data[1];
+  drone2 = dr_data[2];
 
   // resolution command changes the vel and head of robot1 to avoid collision
   float resolution_cmd[2];
@@ -228,29 +190,24 @@ void percevite_vo_periodic(void) {
   if (percevite_vo_detect(&drone1, &drone2, resolution_cmd)) {
     printf("[VELOBS] mode\n");
     collision = true;
-
-    // resolved yaw? nah! Instead translate in lateral plane rather than change heading..
-    // dr_cmd.yaw = resolution_cmd[1];
+    // resolve yaw? Cartesian mode: translate in lateral plane rather than change heading..
     lateral_vel_ctrl(resolution_cmd[0] + 0.2, resolution_cmd[1]);
   } else {
     printf("[POS] mode\n");
     collision = false;
   }
 
-  #ifdef SIM
-  // assume instant convergence
-  drone1.vel  = resolution_cmd[0];
-  drone1.head = resolution_cmd[1];
-  #endif
-
   printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
           drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
           drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
 }
 
+
+float pos_cmd[2] = {3.8, 0.8};
+
 // #define FWD_VEL_CMD 0.2
 #define KP_POS      0.2
-void percevite_pos_ctrl(void) {
+void lateral_pos_ctrl(void) {
 
   struct NedCoor_f *pos_gps = stateGetPositionNed_f();
   dr_state.x = pos_gps->x;
@@ -262,8 +219,8 @@ void percevite_pos_ctrl(void) {
   dr_state.yaw = stateGetNedToBodyEulers_f()->psi;
 
   // cmd pos = origin
-	float curr_error_pos_w_x = (3.8 - dr_state.x);
-	float curr_error_pos_w_y = (0.8 - dr_state.y);
+	float curr_error_pos_w_x = (pos_cmd[0] - dr_state.x);
+	float curr_error_pos_w_y = (pos_cmd[1] - dr_state.y);
 
   double curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
 	double curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;

@@ -34,9 +34,7 @@ extern "C" {
 
 #define ESP_UART_PORT uart2
 
-// Enter ID for drone number (1/2)
-// #define SELF_ID 1 // Defined in bebop.xml
-// #define SIM
+// SELF_ID to be defined via airframe xml 
 
 #define ESP_MAX_LEN 50
 #define MAX_DRONES 5  
