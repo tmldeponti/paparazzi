@@ -145,7 +145,8 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   centre[1] = robot1->pos.y + robot2->vel.y;
 
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR) && ((deltad > RR))) {
+  // && (deltad > RR)... creating trouble..
+  if ((tcpa > 0) && (dcpa < RR)) {
     // TODO: conditions to avoid!! Heading is lost now.. 
     //if (va[1] < vrel[1]) ...
     float newvel_cart[2];
@@ -197,9 +198,9 @@ void percevite_vo_periodic(void) {
     collision = false;
   }
 
-  printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-          drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
-          drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
+  // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+  //         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
+  //         drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
 }
 
 
@@ -222,8 +223,8 @@ void lateral_pos_ctrl(void) {
 	float curr_error_pos_w_x = (pos_cmd[0] - dr_state.x);
 	float curr_error_pos_w_y = (pos_cmd[1] - dr_state.y);
 
-  double curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
-	double curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;
+  float curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
+	float curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;
 
   float vel_x_cmd_velFrame = curr_error_pos_x_velFrame * KP_POS; // FWD_VEL_CMD;
 	float vel_y_cmd_velFrame = curr_error_pos_y_velFrame * KP_POS;
@@ -260,5 +261,4 @@ void percevite_get_cmd(float *roll, float *pitch, float* yaw) {
   *roll  = (dr_cmd.roll);
   *pitch = (dr_cmd.pitch);
   *yaw   = (dr_cmd.yaw);
-  // printf("[CMD] R: %f, P: %f, Y: %f\n", R2D * dr_cmd.roll, R2D * dr_cmd.pitch, R2D * dr_cmd.yaw);
 }

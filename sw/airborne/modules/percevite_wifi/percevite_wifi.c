@@ -125,10 +125,10 @@ static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 
 // rx: print struct received after checksum match
 static void print_drone_struct(uart_packet_t *uart_packet_rx) {
-	printf("[rx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
-					uart_packet_rx->info.drone_id,
-					uart_packet_rx->data.pos.x, uart_packet_rx->data.pos.y,
-					uart_packet_rx->data.vel.x, uart_packet_rx->data.vel.y);
+	// printf("[rx] id: %d, x: %f, y: %f, velx: %f, vely: %f\n", 
+	// 				uart_packet_rx->info.drone_id,
+	// 				uart_packet_rx->data.pos.x, uart_packet_rx->data.pos.y,
+	// 				uart_packet_rx->data.vel.x, uart_packet_rx->data.vel.y);
 }
 
 
