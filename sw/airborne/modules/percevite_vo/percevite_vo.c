@@ -31,10 +31,14 @@
 
 #include "modules/percevite_vo/percevite_vo.h"
 
+/* for flightplan edit */
+#include "firmwares/rotorcraft/navigation.h"
+#include "generated/flight_plan.h"
+
 /* gps functions */
 #include "state.h"
 
-volatile bool collision = false;
+// percevite_requires_avoidance = false;
 
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];
@@ -104,8 +108,6 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
         new_vel_a_bdy[0] = projected_pt[0] - robot_a->pos.x;
         new_vel_a_bdy[1] = projected_pt[1] - robot_a->pos.y;
 
-        // new_vel_a_bdy[0] = new_vel_a_bdy[0] + 0.4;
-
         printf("resolved: %f \t %f (m/s)\n", new_vel_a_bdy[0], new_vel_a_bdy[1]);
         
     } else {
@@ -174,6 +176,7 @@ void vo_simulate_loop(drone_data_t* robot_sim) {
 
 drone_data_t drone1, drone2;
 void percevite_vo_init(void) {
+  percevite_requires_avoidance = false;
   // VO init not required when not SIMulating
 }
 
@@ -187,15 +190,19 @@ void percevite_vo_periodic(void) {
 
   // resolution command changes the vel and head of robot1 to avoid collision
   float resolution_cmd[2];
+
+  // percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
   
-  if (percevite_vo_detect(&drone1, &drone2, resolution_cmd)) {
+  percevite_requires_avoidance = !percevite_requires_avoidance;
+  if (percevite_requires_avoidance) {
     printf("[VELOBS] mode\n");
-    collision = true;
+    
     // resolve yaw? Cartesian mode: translate in lateral plane rather than change heading..
-    lateral_vel_ctrl(resolution_cmd[0] + 0.2, resolution_cmd[1]);
+    // lateral_vel_ctrl(resolution_cmd[0] + 0.2, resolution_cmd[1]);
+    // wapoint becomes 0,0 not -40, 40...
+    waypoint_set_xy_i(WP_AVOID, -40, 40);
   } else {
     printf("[POS] mode\n");
-    collision = false;
   }
 
   // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
@@ -232,7 +239,7 @@ void lateral_pos_ctrl(void) {
 	vel_x_cmd_velFrame = bound_f(vel_x_cmd_velFrame, -MAX_VEL, MAX_VEL);
 	vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
 
-  if (!collision) {
+  if (!percevite_requires_avoidance) {
     float yaw = atan2f(curr_error_pos_w_y, curr_error_pos_w_x);
     lateral_vel_ctrl(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
     dr_cmd.yaw = yaw;

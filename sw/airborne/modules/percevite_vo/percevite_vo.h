@@ -40,6 +40,8 @@
 /* MAX_VEL for control and velocity obstacle */
 #define MAX_VEL 0.6
 
+volatile bool percevite_requires_avoidance;
+
 /* VO init: dummy init */
 extern void percevite_vo_init(void);
 
