@@ -48,7 +48,7 @@
       <define name="FILE_LOGGER_PATH" value="/data/ftp/internal_000"/>
     </module>
     
-    <module name="ctrl_module_outerloop_demo"/>
+    <!--module name="ctrl_module_outerloop_demo"/-->
     <module name="percevite_wifi">
       <!-- TODO: Percevite, change aircraft here -->
       <define name="SELF_ID" value="1"/>

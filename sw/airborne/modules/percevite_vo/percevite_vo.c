@@ -29,6 +29,9 @@
 /* MAKE MATRIX PTR */
 #include "math/pprz_algebra_float.h"
 
+/* Binary Floating Point for geodetic */
+#include "math/pprz_algebra_int.h"
+
 #include "modules/percevite_vo/percevite_vo.h"
 
 /* for flightplan edit */
@@ -67,11 +70,14 @@ void calc_proj_matrix(const float *a, const float *b, float **c) {
 void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, float angle2, float *centre, float *new_vel_a_bdy) {
     
     float vel_a_w[2];
-    // polar2cart(robot_a->vel, robot_a->head, vel_a_bdy);
 
     // body frame to world frame velocity vector
     vel_a_w[0] = robot_a->pos.x + robot_a->vel.x;
     vel_a_w[1] = robot_a->pos.y + robot_a->vel.y;
+
+    // increase predicted vel.. measurement noise, feedfwd for drag
+    vel_a_w[0] += 0.5;
+    vel_a_w[1] += 0.5;
 
     float yintercept = centre[1] - (tanf(angle1) * centre[0]);
     float xintercept = 0.0;
@@ -146,11 +152,9 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   centre[0] = robot1->pos.x + robot2->vel.x; 
   centre[1] = robot1->pos.y + robot2->vel.y;
 
-  // collision is imminent if tcpa > 0 and dcpa < RR
-  // && (deltad > RR)... creating trouble..
-  if ((tcpa > 0) && (dcpa < RR)) {
-    // TODO: conditions to avoid!! Heading is lost now.. 
-    //if (va[1] < vrel[1]) ...
+  // collision is imminent if tcpa > 0 and dcpa < RR && (deltad > RR)... creating trouble..
+  if ((tcpa > 0) && (dcpa < RR) && (deltad > RR)) {
+    // TODO: non mirroring conditions to avoid!! p.s.: heading is lost now if (va[1] < vrel[1]) ...
     float newvel_cart[2];
     percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
 
@@ -163,7 +167,7 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   // if no collisions are predicted, don't resolve and be what you were
   // send the original velocity command back..
   else {
-    resolution_cmd[0] = 0.5;
+    resolution_cmd[0] = 0.5;  // 0.5 m/s
     resolution_cmd[1] = 0;
     return false;
   }
@@ -177,8 +181,11 @@ void vo_simulate_loop(drone_data_t* robot_sim) {
 drone_data_t drone1, drone2;
 void percevite_vo_init(void) {
   percevite_requires_avoidance = false;
+  printf("VO init done\n");
+
   // VO init not required when not SIMulating
 }
+
 
 /* 5Hz periodic loop */
 void percevite_vo_periodic(void) {
@@ -186,86 +193,33 @@ void percevite_vo_periodic(void) {
   // simulate what happens to both robots to later extern it to Percevite WiFi
   // overwrite dr_data for tx...  
   drone1 = dr_data[1];
-  drone2 = dr_data[2];
 
+  drone2 = dr_data[2];
+  // sitting duck
+  drone2.pos.x = waypoint_get_x(WP_DRONE2);
+  drone2.pos.y = waypoint_get_y(WP_DRONE2);
+  drone2.vel.x = 0.0;
+  drone2.vel.y = 0.0;
+
+  // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+  //       drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
+  //       drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
+  
   // resolution command changes the vel and head of robot1 to avoid collision
   float resolution_cmd[2];
+  percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
 
-  // percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
-  
-  percevite_requires_avoidance = !percevite_requires_avoidance;
+  // TODO: add not near waypoint condition
   if (percevite_requires_avoidance) {
-    printf("[VELOBS] mode\n");
-    
-    // resolve yaw? Cartesian mode: translate in lateral plane rather than change heading..
-    // lateral_vel_ctrl(resolution_cmd[0] + 0.2, resolution_cmd[1]);
-    // wapoint becomes 0,0 not -40, 40...
-    waypoint_set_xy_i(WP_AVOID, -40, 40);
+    struct EnuCoor_i new_coord;
+    // todo verify x y ned enu swap
+    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + RR * resolution_cmd[0]); // TODO: vel*dt
+    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + RR * resolution_cmd[1]); // TODO: vel*dt
+    waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
+    printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
   } else {
     printf("[POS] mode\n");
   }
 
-  // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-  //         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
-  //         drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
-}
 
-
-float pos_cmd[2] = {3.8, 0.8};
-
-// #define FWD_VEL_CMD 0.2
-#define KP_POS      0.2
-void lateral_pos_ctrl(void) {
-
-  struct NedCoor_f *pos_gps = stateGetPositionNed_f();
-  dr_state.x = pos_gps->x;
-  dr_state.y = pos_gps->y;
-
-  struct NedCoor_f *vel_gps = stateGetSpeedNed_f();
-  dr_state.vx = vel_gps->x;
-  dr_state.vy = vel_gps->y;
-  dr_state.yaw = stateGetNedToBodyEulers_f()->psi;
-
-  // cmd pos = origin
-	float curr_error_pos_w_x = (pos_cmd[0] - dr_state.x);
-	float curr_error_pos_w_y = (pos_cmd[1] - dr_state.y);
-
-  float curr_error_pos_x_velFrame =  cos(dr_state.yaw)*curr_error_pos_w_x + sin(dr_state.yaw)*curr_error_pos_w_y;
-	float curr_error_pos_y_velFrame = -sin(dr_state.yaw)*curr_error_pos_w_x + cos(dr_state.yaw)*curr_error_pos_w_y;
-
-  float vel_x_cmd_velFrame = curr_error_pos_x_velFrame * KP_POS; // FWD_VEL_CMD;
-	float vel_y_cmd_velFrame = curr_error_pos_y_velFrame * KP_POS;
-
-	vel_x_cmd_velFrame = bound_f(vel_x_cmd_velFrame, -MAX_VEL, MAX_VEL);
-	vel_y_cmd_velFrame = bound_f(vel_y_cmd_velFrame, -MAX_VEL, MAX_VEL);
-
-  if (!percevite_requires_avoidance) {
-    float yaw = atan2f(curr_error_pos_w_y, curr_error_pos_w_x);
-    lateral_vel_ctrl(vel_x_cmd_velFrame, vel_y_cmd_velFrame);
-    dr_cmd.yaw = yaw;
-  }
-}
-
-#define KP_VEL      0.2
-#define K_FF        0.0
-#define MAX_BANK    0.5   // 26 deg max bank
-void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y) {
-
-  float vel_x_est_velFrame =  cos(dr_state.yaw) * dr_state.vx + sin(dr_state.yaw) * dr_state.vy;
-	float vel_y_est_velFrame = -sin(dr_state.yaw) * dr_state.vx + cos(dr_state.yaw) * dr_state.vy;
-
-	float curr_error_vel_x = velcmd_body_x - vel_x_est_velFrame;
-	float curr_error_vel_y = velcmd_body_y - vel_y_est_velFrame;
-
-	float accx_cmd_velFrame = curr_error_vel_x * KP_VEL + K_FF * velcmd_body_x;
-	float accy_cmd_velFrame = curr_error_vel_y * KP_VEL + K_FF * velcmd_body_y;
-
-  dr_cmd.pitch = -1 * bound_f(accx_cmd_velFrame, -MAX_BANK, MAX_BANK);
-  dr_cmd.roll  = bound_f(accy_cmd_velFrame, -MAX_BANK, MAX_BANK);  
-}
-
-void percevite_get_cmd(float *roll, float *pitch, float* yaw) {
-  *roll  = (dr_cmd.roll);
-  *pitch = (dr_cmd.pitch);
-  *yaw   = (dr_cmd.yaw);
 }

@@ -29,7 +29,7 @@
 /* for externed dr_data[MAX_DRONES] */
 #include "modules/percevite_wifi/percevite_wifi.h"
 
-#define RR  2.5
+#define RR  8.5
 #define max(a,b)  ((a)>=(b)?(a):(b))
 #define min(a,b)  ((a)<=(b)?(a):(b))
 
@@ -38,7 +38,7 @@
 #define PI (3.141592)
 
 /* MAX_VEL for control and velocity obstacle */
-#define MAX_VEL 0.6
+#define MAX_VEL 3.0
 
 volatile bool percevite_requires_avoidance;
 

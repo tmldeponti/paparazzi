@@ -353,8 +353,8 @@ void percevite_wifi_init() {
 void percevite_wifi_tx_loop() {
 	// bool gps_valid = stateIsLocalCoordinateValid();
 	// if (gps_valid) {
-		struct NedCoor_f *pos_gps = stateGetPositionNed_f();
-		struct NedCoor_f *vel_gps = stateGetSpeedNed_f();
+		struct EnuCoor_f *pos_gps = stateGetPositionEnu_f();
+		struct EnuCoor_f *vel_gps = stateGetSpeedEnu_f();
 		
 		// for yaw..
 		struct FloatEulers *att = stateGetNedToBodyEulers_f();
