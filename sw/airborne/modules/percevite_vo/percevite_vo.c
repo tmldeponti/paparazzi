@@ -41,7 +41,7 @@
 /* gps functions */
 #include "state.h"
 
-// percevite_requires_avoidance = false;
+volatile bool percevite_requires_avoidance = false;
 
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];

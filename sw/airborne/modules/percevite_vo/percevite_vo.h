@@ -40,7 +40,7 @@
 /* MAX_VEL for control and velocity obstacle */
 #define MAX_VEL 3.0
 
-volatile bool percevite_requires_avoidance;
+extern volatile bool percevite_requires_avoidance;
 
 /* VO init: dummy init */
 extern void percevite_vo_init(void);
@@ -54,27 +54,6 @@ extern void lateral_pos_ctrl(void);
 void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y);
 /* position control: copy and send command to outerloop */
 void percevite_get_cmd(float *roll, float *pitch, float* yaw);
-
-// dr_state is a copy of dr_data, used for position control
-struct dr_state {
-  float x;   // world pos x
-  float y;   // world pos x
-  float vx;  // world vel x
-  float vy;  // world vel y
-  float yaw; // yaw
-};
-
-// final struct holding commands to attitude outerloop
-struct dr_cmd {
-  float roll;      // body frame roll
-  float pitch;    // body frame pitch -ve for fwd
-  float yaw;      // body frame yaw
-  float thrust;   // body frame command z force
-};
-
-// declare pos control and cmd structs
-struct dr_state dr_state;
-struct dr_cmd dr_cmd;
 
 /* hero functions: velocity obstacle math */
 void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
