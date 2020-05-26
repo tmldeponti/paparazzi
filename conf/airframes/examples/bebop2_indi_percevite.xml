@@ -82,19 +82,21 @@
 
   <section name="IMU" prefix="IMU_">
     <!-- Magneto calibration -->
-    <define name="MAG_X_NEUTRAL" value="43"/>
-    <define name="MAG_Y_NEUTRAL" value="-151"/>
-    <define name="MAG_Z_NEUTRAL" value="-64"/>
-    <define name="MAG_X_SENS" value="7.21201776785" integer="16"/>
-    <define name="MAG_Y_SENS" value="7.20541442846" integer="16"/>
-    <define name="MAG_Z_SENS" value="7.55306977197" integer="16"/>
+    <!-- TUD0182, Bebop2-34-->
+    <define name="MAG_X_NEUTRAL" value="51"/>
+    <define name="MAG_Y_NEUTRAL" value="-138"/>
+    <define name="MAG_Z_NEUTRAL" value="-52"/>
+    <define name="MAG_X_SENS" value="10.068756085786323" integer="16"/>
+    <define name="MAG_Y_SENS" value="10.014276499696438" integer="16"/>
+    <define name="MAG_Z_SENS" value="9.033535176402685" integer="16"/>
 
-    <define name="ACCEL_X_NEUTRAL" value="-1"/>
-    <define name="ACCEL_Y_NEUTRAL" value="-16"/>
-    <define name="ACCEL_Z_NEUTRAL" value="-102"/>
-    <define name="ACCEL_X_SENS" value="4.90615997669" integer="16"/>
-    <define name="ACCEL_Y_SENS" value="4.8601827035" integer="16"/>
-    <define name="ACCEL_Z_SENS" value="4.85967415403" integer="16"/>
+    <define name="ACCEL_X_NEUTRAL" value="3"/>
+    <define name="ACCEL_Y_NEUTRAL" value="-23"/>
+    <define name="ACCEL_Z_NEUTRAL" value="-62"/>
+    <define name="ACCEL_X_SENS" value="4.8995055879103155" integer="16"/>
+    <define name="ACCEL_Y_SENS" value="4.855814617690273" integer="16"/>
+    <define name="ACCEL_Z_SENS" value="4.843009815277043" integer="16"/>
+
   </section>
 
   <section name="INS" prefix="INS_">
