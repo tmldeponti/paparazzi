@@ -196,10 +196,14 @@ void percevite_vo_periodic(void) {
 
   drone2 = dr_data[2];
   // sitting duck
-  drone2.pos.x = waypoint_get_x(WP_DRONE2);
-  drone2.pos.y = waypoint_get_y(WP_DRONE2);
-  drone2.vel.x = 0.0;
-  drone2.vel.y = 0.0;
+  // drone2.pos.x = waypoint_get_x(WP_DRONE2);
+  // drone2.pos.y = waypoint_get_y(WP_DRONE2);
+  // drone2.vel.x = 0.0;
+  // drone2.vel.y = 0.0;
+  struct EnuCoor_i drone2cor;
+  drone2cor.x = POS_BFP_OF_REAL(drone2.pos.x);
+  drone2cor.y = POS_BFP_OF_REAL(drone2.pos.y);
+  waypoint_move_xy_i(WP_DRONE2, drone2cor.x, drone2cor.y);
 
   // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
   //       drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
