@@ -80,24 +80,7 @@
     <define name="CALC_AMSL_BARO" value="TRUE"/>
   </section>
 
-  <section name="IMU" prefix="IMU_">
-    <!-- Magneto calibration -->
-    <!-- TUD0182, Bebop2-34-->
-    <define name="MAG_X_NEUTRAL" value="51"/>
-    <define name="MAG_Y_NEUTRAL" value="-138"/>
-    <define name="MAG_Z_NEUTRAL" value="-52"/>
-    <define name="MAG_X_SENS" value="10.068756085786323" integer="16"/>
-    <define name="MAG_Y_SENS" value="10.014276499696438" integer="16"/>
-    <define name="MAG_Z_SENS" value="9.033535176402685" integer="16"/>
-
-    <define name="ACCEL_X_NEUTRAL" value="3"/>
-    <define name="ACCEL_Y_NEUTRAL" value="-23"/>
-    <define name="ACCEL_Z_NEUTRAL" value="-62"/>
-    <define name="ACCEL_X_SENS" value="4.8995055879103155" integer="16"/>
-    <define name="ACCEL_Y_SENS" value="4.855814617690273" integer="16"/>
-    <define name="ACCEL_Z_SENS" value="4.843009815277043" integer="16"/>
-
-  </section>
+  <include href="conf/airframes/tudelft/calibrations/percevite_drone2.xml"/>
 
   <section name="INS" prefix="INS_">
     <define name="SONAR_MAX_RANGE" value="2.2"/>

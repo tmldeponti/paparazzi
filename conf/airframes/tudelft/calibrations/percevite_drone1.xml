@@ -1,24 +1,22 @@
 <!DOCTYPE airframe SYSTEM "../../airframe.dtd">
 
 <airframe>
+
   <section name="IMU" prefix="IMU_">
-    <define name="ACCEL_X_NEUTRAL" value="84"/>
-    <define name="ACCEL_Y_NEUTRAL" value="16"/>
-    <define name="ACCEL_Z_NEUTRAL" value="307"/>
-    <define name="ACCEL_X_SENS" value="2.42929239412" integer="16"/>
-    <define name="ACCEL_Y_SENS" value="2.43472415075" integer="16"/>
-    <define name="ACCEL_Z_SENS" value="2.42353809284" integer="16"/>
-    
-    <!-- Magneto calibration drone 1 -->
-    <define name="MAG_X_NEUTRAL" value="54"/>
-    <define name="MAG_Y_NEUTRAL" value="-80"/>
-    <define name="MAG_Z_NEUTRAL" value="383"/>
-    <define name="MAG_X_SENS" value="7.73477162895" integer="16"/>
-    <define name="MAG_Y_SENS" value="8.03127011228" integer="16"/>
-    <define name="MAG_Z_SENS" value="8.23154102232" integer="16"/>
-    <!-- Magneto current calibration -->
-    <define name="MAG_X_CURRENT_COEF" value="0.0"/>
-    <define name="MAG_Y_CURRENT_COEF" value="0.0"/>
-    <define name="MAG_Z_CURRENT_COEF" value="0.0"/>
+    <!-- Magneto calibration -->
+    <!-- TUD0182, Bebop2-34-->
+    <define name="MAG_X_NEUTRAL" value="51"/>
+    <define name="MAG_Y_NEUTRAL" value="-138"/>
+    <define name="MAG_Z_NEUTRAL" value="-52"/>
+    <define name="MAG_X_SENS" value="10.068756085786323" integer="16"/>
+    <define name="MAG_Y_SENS" value="10.014276499696438" integer="16"/>
+    <define name="MAG_Z_SENS" value="9.033535176402685" integer="16"/>
+
+    <define name="ACCEL_X_NEUTRAL" value="3"/>
+    <define name="ACCEL_Y_NEUTRAL" value="-23"/>
+    <define name="ACCEL_Z_NEUTRAL" value="-62"/>
+    <define name="ACCEL_X_SENS" value="4.8995055879103155" integer="16"/>
+    <define name="ACCEL_Y_SENS" value="4.855814617690273" integer="16"/>
+    <define name="ACCEL_Z_SENS" value="4.843009815277043" integer="16"/>
   </section>
 </airframe>

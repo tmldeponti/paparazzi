@@ -1,7 +1,7 @@
 <!DOCTYPE flight_plan SYSTEM "../flight_plan.dtd">
 <!--refer: rotorcraft survey mission flightplan -->
 <!-- Fellowship center: 51°59'27.7"N 4°22'41.9"E -->
-<flight_plan alt="4" ground_alt="0" lat0="51 59 27.7" lon0="4 22 41.9" max_dist_from_home="50" name="Delft Basic" security_height="2">
+<flight_plan alt="4" ground_alt="0" lat0="51.991029" lon0="4.378361" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"
@@ -21,10 +21,10 @@
     <waypoint name="p4" x="4.9" y="-34.4"/>
     <waypoint name="CAM" x="14.2" y="-29.4"/-->
     <waypoint name="TD" x="5.6" y="-10.9"/>
-    <waypoint lat="51.9907109" lon="4.3788250" name="FA1"/> <!--x="50" y="-50"-->
-    <waypoint lat="51.9913839" lon="4.3783137" name="FA2"/> <!--x="50" y="50"-->
-    <waypoint lat="51.9912810" lon="4.3778320" name="FA3"/> <!--x="-50" y="50"-->
-    <waypoint lat="51.9905797" lon="4.3783202" name="FA4"/> <!--x="-50" y="-50"-->
+    <waypoint x="50" y="-50" name="FA1"/> <!--lat="51.9907109" lon="4.3788250"-->
+    <waypoint x="50" y="50" name="FA2"/> <!--lat="51.9913839" lon="4.3783137"-->
+    <waypoint x="-50" y="50" name="FA3"/> <!--lat="51.9912810" lon="4.3778320"-->
+    <waypoint x="-50" y="-50" name="FA4"/> <!--lat="51.9905797" lon="4.3783202"-->
   </waypoints>
   <sectors>
     <sector color="red" name="Flight_Area">
