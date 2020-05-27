@@ -43,6 +43,9 @@
 
 volatile bool percevite_requires_avoidance = false;
 
+float temp_x = 0;
+float temp_y = 0;
+
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];
 
@@ -163,14 +166,21 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   }
   
   // collision is imminent if tcpa > 0 and dcpa < RR && (deltad > RR)... creating trouble..
-  if ((tcpa > 0) && (dcpa < RR) && (deltad > RR) && (closest_wp_dist > RR)) {
+  if ((tcpa > 0) && (dcpa < RR)) { //&& (deltad > RR)) {
     // TODO: non mirroring conditions to avoid!! p.s.: heading is lost now if (va[1] < vrel[1]) ...
     float newvel_cart[2];
     percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
 
     /* TODO: rate and mag bound here and send to ctrl outerloop */
-    resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
-    resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
+    if (deltad > RR) {
+      resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
+      resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
+      temp_x = resolution_cmd[0];
+      temp_y = resolution_cmd[1];
+    } else {  // continue old resolution command..
+      resolution_cmd[0] = temp_x;
+      resolution_cmd[1] = temp_y;
+    }
     
     return true;
   }
@@ -207,29 +217,29 @@ void percevite_vo_periodic(void) {
   drone2 = dr_data[2];
   // sitting duck (sim)
   /*********** if mode == NPS ****************/
-  // drone2.pos.x = waypoint_get_x(WP_DRONE2);
-  // drone2.pos.y = waypoint_get_y(WP_DRONE2);
-  // drone2.vel.x = 0.0;
-  // drone2.vel.y = 0.0;
+  drone2.pos.x = waypoint_get_x(WP_DRONE2);
+  drone2.pos.y = waypoint_get_y(WP_DRONE2);
+  drone2.vel.x = 0.0;
+  drone2.vel.y = 0.0;
   /*********** else if mode == AP ****************/
-  struct EnuCoor_i drone2cor;
-  drone2cor.x = POS_BFP_OF_REAL(drone2.pos.x);
-  drone2cor.y = POS_BFP_OF_REAL(drone2.pos.y);
-  waypoint_move_xy_i(WP_DRONE2, drone2cor.x, drone2cor.y);
+  // struct EnuCoor_i drone2cor;
+  // drone2cor.x = POS_BFP_OF_REAL(drone2.pos.x);
+  // drone2cor.y = POS_BFP_OF_REAL(drone2.pos.y);
+  // waypoint_move_xy_i(WP_DRONE2, drone2cor.x, drone2cor.y);
 
   printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
         drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
   
   // resolution command changes the vel and head of robot1 to avoid collision
-  float resolution_cmd[2];
+  float resolution_cmd[2] = {0.0, 0.0};
   percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
 
   if (percevite_requires_avoidance) {
     struct EnuCoor_i new_coord;
     // todo verify x y ned enu swap
-    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + 0.5 * RR * resolution_cmd[0]); // TODO: vel*dt
-    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + 0.5 * RR * resolution_cmd[1]); // TODO: vel*dt
+    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + 0.4 * RR * resolution_cmd[0]); // TODO: vel*dt
+    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + 0.4 * RR * resolution_cmd[1]); // TODO: vel*dt
     waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
     printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
   } else {
