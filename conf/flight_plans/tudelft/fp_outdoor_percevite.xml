@@ -2,7 +2,7 @@
 <!--refer: rotorcraft survey mission flightplan -->
 <!-- Fellowship center: 51°59'27.7"N 4°22'41.9"E -->
 <!-- Valkenburg: 52.1681438,4.4119717,187m-->
-<flight_plan alt="4" ground_alt="0" lat0="52.1681438" lon0="4.4119717" max_dist_from_home="75" name="Delft Basic" security_height="2">
+<flight_plan alt="4" ground_alt="0" lat0="52.1681493" lon0="4.4125135" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"
@@ -15,9 +15,9 @@
     <waypoint name="CLIMB" x="0.0" y="5.0"/>
     <waypoint name="STDBY" x="-2.0" y="-5.0"/>
     <waypoint name="AVOID" x="-12.0" y="-5.0"/>
-    <waypoint name="p1" x="25.9" y="25.3"/>
+    <waypoint name="p1" x="38.5" y="38.5"/>
     <waypoint name="p2" x="-0.6" y="21.6"/>
-    <waypoint name="DRONE2" x="12.0" y="8.0"/>
+    <waypoint name="DRONE2" x="25.0" y="25.0"/>
     <!--waypoint name="p3" x="22.2" y="-26.5"/>
     <waypoint name="p4" x="4.9" y="-34.4"/>
     <waypoint name="CAM" x="14.2" y="-29.4"/-->
@@ -45,7 +45,7 @@
     <!-- After Avoiding -->
     <exception cond="((percevite_requires_avoidance == false) &&
       (nav_block == IndexOfBlock('PercEviteAvoid')) &&
-      (autopilot_in_flight() == true) )" deroute="stay_p1"/> 
+      (autopilot_in_flight() == true) )" deroute="line_p1_p2"/> 
       <!-- resume -->
 
     <!-- RC-Loss -->
