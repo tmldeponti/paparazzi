@@ -29,7 +29,15 @@
 /* for externed dr_data[MAX_DRONES] */
 #include "modules/percevite_wifi/percevite_wifi.h"
 
+// obstacle radius
 #define RR  10.0
+
+// avoid only if danger in the next 10 seconds
+#define ETA_AVOID 10.0
+
+// max waypoint step
+#define VEL_STEP 12.0
+
 #define max(a,b)  ((a)>=(b)?(a):(b))
 #define min(a,b)  ((a)<=(b)?(a):(b))
 

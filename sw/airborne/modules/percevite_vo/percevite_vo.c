@@ -126,6 +126,7 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
 
 bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
 
+  // initializing resolution vel @ 0.0 = stop at current waypoint
   static float last_resolution_cmd[2] = {0.0, 0.0};
   
   float drel[2], vrel[2]; 
@@ -161,21 +162,23 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
     float current_distance = get_dist2_to_waypoint(i);
     if (current_distance < closest_wp_dist) {
       closest_wp_dist = current_distance;
+      if (closest_wp_dist < RR) {
+        printf("Reached a waypoint, stop velobs temporarily..\n");
+        return false;
+      }
     }
-  }
-
-  if (closest_wp_dist < 5) {
-    printf("Reached a waypoint, stop velobs temporarily..\n");
-    return false;
   }
   
   // collision is imminent if tcpa > 0 and dcpa < RR
-  if ((tcpa > 0) && (dcpa < RR)) {
-    // TODO for two drones, add non mirroring conditions to avoid!! 
-    // p.s.: heading is lost now if (va[1] < vrel[1]) ...
+  if ((tcpa > 0) && (tcpa < ETA_AVOID) && (dcpa < RR)) {
     float newvel_cart[2];
-    percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-    // TODO: Maybe change in resolution command can be bounded.
+    // [patch] co-ordination problem solved by forcing right
+    if ((vrel[0] + 3.0) >= vrel[1]) {
+      percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
+    } else {
+      percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
+    }
+    
     if (deltad > RR) {
       resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
       resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
@@ -234,15 +237,15 @@ void percevite_vo_periodic(void) {
         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
         drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
   
-  // resolution command changes the vel and head of robot1 to avoid collision
+  // resolution command changes the vel"h" of robot1 to avoid collision
   float resolution_cmd[2] = {0.0, 0.0};
   percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
 
   if (percevite_requires_avoidance) {
     struct EnuCoor_i new_coord;
     // todo verify x y ned enu swap
-    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + 0.4 * RR * resolution_cmd[0]); // TODO: vel*dt
-    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + 0.4 * RR * resolution_cmd[1]); // TODO: vel*dt
+    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + VEL_STEP * resolution_cmd[0]); // TODO: vel*dt
+    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + VEL_STEP * resolution_cmd[1]); // TODO: vel*dt
     waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
     printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
   } else {
