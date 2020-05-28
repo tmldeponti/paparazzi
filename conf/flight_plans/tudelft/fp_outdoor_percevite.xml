@@ -1,8 +1,8 @@
 <!DOCTYPE flight_plan SYSTEM "../flight_plan.dtd">
 <!--refer: rotorcraft survey mission flightplan -->
-<!-- Fellowship center: 51°59'27.7"N 4°22'41.9"E -->
+<!-- Fellowship center: 51.9910406, 4.3772205 -->
 <!-- Valkenburg: 52.1681438,4.4119717,187m-->
-<flight_plan alt="10" ground_alt="0" lat0="52.1681493" lon0="4.4125135" max_dist_from_home="75" name="Delft Basic" security_height="2">
+<flight_plan alt="10" ground_alt="0" lat0="51.9910406" lon0="4.3772205" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"

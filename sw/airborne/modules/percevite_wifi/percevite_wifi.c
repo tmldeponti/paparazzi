@@ -109,7 +109,7 @@ static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 	printf("[tx] id: %d, x: %f, y: %f, vel: %f, head: %f\n", 
 	uart_packet_tx->info.drone_id,
 	uart_packet_tx->data.pos.x, uart_packet_tx->data.pos.y,
-	uart_packet_tx->data.vel,   uart_packet_tx->data.head);
+	uart_packet_tx->data.vel.x, uart_packet_tx->data.vel.y);
 
 	// check via wireshark
 	printf("ESP SSID should be:\n");
