@@ -43,9 +43,6 @@
 
 volatile bool percevite_requires_avoidance = false;
 
-float temp_x = 0;
-float temp_y = 0;
-
 /* externed from percevite_wifi */
 drone_data_t dr_data[MAX_DRONES];
 
@@ -128,6 +125,8 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
 }
 
 bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
+
+  static float last_resolution_cmd[2] = {0.0, 0.0};
   
   float drel[2], vrel[2]; 
   drel[0] = robot1->pos.x - robot2->pos.x;
@@ -158,37 +157,41 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   // avoid calling the avoidance funtion after reaching the waypoint. 
   // "percevite_requires_avoidance" will only be true if the destination is far
   float closest_wp_dist = 100; // 100 meters
-  for (int i = 0; i < WP_p1 + 5; i++) {
+  for (int i = 0; i < (WP_p1 + 5); i++) {
     float current_distance = get_dist2_to_waypoint(i);
     if (current_distance < closest_wp_dist) {
       closest_wp_dist = current_distance;
     }
   }
+
+  if (closest_wp_dist < 5) {
+    printf("Reached a waypoint, stop velobs temporarily..\n");
+    return false;
+  }
   
-  // collision is imminent if tcpa > 0 and dcpa < RR && (deltad > RR)... creating trouble..
-  if ((tcpa > 0) && (dcpa < RR)) { //&& (deltad > RR)) {
-    // TODO: non mirroring conditions to avoid!! p.s.: heading is lost now if (va[1] < vrel[1]) ...
+  // collision is imminent if tcpa > 0 and dcpa < RR
+  if ((tcpa > 0) && (dcpa < RR)) {
+    // TODO for two drones, add non mirroring conditions to avoid!! 
+    // p.s.: heading is lost now if (va[1] < vrel[1]) ...
     float newvel_cart[2];
     percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-
-    /* TODO: rate and mag bound here and send to ctrl outerloop */
+    // TODO: Maybe change in resolution command can be bounded.
     if (deltad > RR) {
       resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
       resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
-      temp_x = resolution_cmd[0];
-      temp_y = resolution_cmd[1];
-    } else {  // continue old resolution command..
-      resolution_cmd[0] = temp_x;
-      resolution_cmd[1] = temp_y;
-    }
-    
+      last_resolution_cmd[0] = resolution_cmd[0];
+      last_resolution_cmd[1] = resolution_cmd[1];
+    } 
+    // avoid resolution command being un-initialized...
+    else {  
+      // continue old resolution command..
+      resolution_cmd[0] = last_resolution_cmd[0];
+      resolution_cmd[1] = last_resolution_cmd[1];
+    }  
     return true;
   }
-  // if no collisions are predicted, don't resolve and be what you were
-  // send the original velocity command back..
   else {
-    resolution_cmd[0] = 0.5;  // 0.5 m/s
-    resolution_cmd[1] = 0;
+    // if no collisions are predicted let flightplan take over..
     return false;
   }
 }

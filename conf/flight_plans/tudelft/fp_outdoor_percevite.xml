@@ -2,7 +2,7 @@
 <!--refer: rotorcraft survey mission flightplan -->
 <!-- Fellowship center: 51°59'27.7"N 4°22'41.9"E -->
 <!-- Valkenburg: 52.1681438,4.4119717,187m-->
-<flight_plan alt="4" ground_alt="0" lat0="52.1681493" lon0="4.4125135" max_dist_from_home="75" name="Delft Basic" security_height="2">
+<flight_plan alt="10" ground_alt="0" lat0="52.1681493" lon0="4.4125135" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"
@@ -141,24 +141,6 @@
       <deroute block="Line12"/>
     </block>
 
-
-    <!--block name="route">
-      <go from="p1" hmode="route" wp="p2"/>
-      <go from="p2" hmode="route" wp="p3"/>
-      <go from="p3" hmode="route" wp="p4"/>
-      <go from="p4" hmode="route" wp="p1"/>
-      <deroute block="stay_p1"/>
-    </block>
-    <block name="test yaw">
-      <go wp="p1"/>
-      <for from="1" to="16" var="i">
-        <heading alt="WaypointAlt(WP_p1)" course="90 * $i" until="stage_time > 3"/>
-      </for>
-      <deroute block="Standby"/>
-    </block>
-    <block name="circle CAM" pre_call="nav_set_heading_towards_waypoint(WP_CAM)">
-      <circle radius="nav_radius" wp="CAM"/>
-    </block-->
     <block name="landHere" strip_button="LandHere" strip_icon="land-right.png">
       <call_once fun="NavSetWaypointHere(WP_TD)"/>
     </block>

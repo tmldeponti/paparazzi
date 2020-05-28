@@ -436,7 +436,7 @@
   <aircraft
    name="bebop2_22"
    ac_id="22"
-   airframe="airframes/examples/bebop2_indi_percevite.xml"
+   airframe="airframes/tudelft/bebop2_indi_percevite.xml"
    radio="radios/dummy.xml"
    telemetry="telemetry/default_rotorcraft.xml"
    flight_plan="flight_plans/tudelft/fp_outdoor_percevite.xml"
