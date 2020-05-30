@@ -38,7 +38,7 @@
 
     <module name="percevite_wifi">
       <!-- TODO: Percevite, change aircraft here -->
-      <define name="SELF_ID" value="2"/>
+      <define name="SELF_ID" value="1"/>
     </module>
     <module name="percevite_vo"/>
 
@@ -80,7 +80,7 @@
     <define name="CALC_AMSL_BARO" value="TRUE"/>
   </section>
 
-  <include href="conf/airframes/tudelft/calibrations/percevite_drone2.xml"/>
+  <include href="conf/airframes/tudelft/calibrations/percevite_drone1.xml"/>
 
   <section name="INS" prefix="INS_">
     <define name="SONAR_MAX_RANGE" value="2.2"/>

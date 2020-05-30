@@ -49,18 +49,18 @@
     <!-- After Avoiding -->
     <exception cond="((percevite_requires_avoidance == false) &&
       (nav_block == IndexOfBlock('PercEviteAvoid12')) &&
-      (autopilot_in_flight() == true) )" deroute="Line12"/> 
+      (autopilot_in_flight() == true) )" deroute="Line12"/>
 
     <exception cond="((percevite_requires_avoidance == false) &&
       (nav_block == IndexOfBlock('PercEviteAvoid21')) &&
-      (autopilot_in_flight() == true) )" deroute="Line21"/> 
+      (autopilot_in_flight() == true) )" deroute="Line21"/>
       <!-- resume -->
 
     <!-- RC-Loss -->
-    <exception cond="((radio_control.status == RC_REALLY_LOST) &&
+    <!--exception cond="((radio_control.status == RC_REALLY_LOST) &&
       !(IndexOfBlock('Takeoff') > nav_block) &&
       !(nav_block >= IndexOfBlock('landHere')) &&
-      (autopilot_in_flight() == true) )" deroute="ComeBackAndLand"/>
+      (autopilot_in_flight() == true) )" deroute="ComeBackAndLand"/-->
 
     <!-- GPS loss -->
     <!-- Not done from flight plan, main.c goes to AP_MODE_FAILSAFE hardcoded -->

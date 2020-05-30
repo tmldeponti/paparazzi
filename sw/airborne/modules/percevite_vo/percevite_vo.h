@@ -32,11 +32,14 @@
 // obstacle radius
 #define RR  10.0
 
-// avoid only if danger in the next 10 seconds
-#define ETA_AVOID 10.0
+// avoid only if danger in the next 12 seconds
+#define ETA_AVOID 12.0
+
+// GPS measurement error on relative velocity
+#define GPS_ACCURACY_VEL 1.5
 
 // max waypoint step
-#define VEL_STEP 12.0
+#define VEL_STEP 3.0
 
 #define max(a,b)  ((a)>=(b)?(a):(b))
 #define min(a,b)  ((a)<=(b)?(a):(b))
@@ -65,7 +68,7 @@ void percevite_get_cmd(float *roll, float *pitch, float* yaw);
 
 /* hero functions: velocity obstacle math */
 void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
-bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd);
+void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2);
 
 /* utils */
 void polar2cart(float mag, float directn, float *cart);

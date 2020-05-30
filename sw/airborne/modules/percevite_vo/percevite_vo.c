@@ -124,10 +124,7 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
     // return resolved velocity in cartesian;
 }
 
-bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2, float *resolution_cmd) {
-
-  // initializing resolution vel @ 0.0 = stop at current waypoint
-  static float last_resolution_cmd[2] = {0.0, 0.0};
+void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2) {
   
   float drel[2], vrel[2]; 
   drel[0] = robot1->pos.x - robot2->pos.x;
@@ -137,17 +134,24 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   vrel[1] = robot1->vel.y - robot2->vel.y;
 
   float norm_vrel = float_vect_norm(vrel, 2);
-  if (norm_vrel < 0.1) {
-    norm_vrel = 0.1;
+  float norm_drel = float_vect_norm(drel, 2);
+
+  static uint8_t positive_ctr = 0;
+  static uint8_t negative_ctr = 0;
+
+  // both are barely moving and far apart
+  if ((norm_vrel < GPS_ACCURACY_VEL) && (norm_drel > 3 * RR)) {
+    negative_ctr += 1;
+    return;
   }
 
   // details on these two variables in Dennis Wijngaarden's prelim
   float tcpa = -float_vect_dot_product(drel, vrel, 2) / pow(norm_vrel, 2);
-  float dcpa = sqrtf((fabsf(pow(float_vect_norm(drel, 2), 2) - (pow(tcpa, 2) * pow(float_vect_norm(vrel, 2), 2)))));
+  float dcpa = sqrtf((fabsf(pow(norm_drel, 2) - (pow(tcpa, 2) * pow(norm_vrel, 2)))));
   // printf("tcpa: %f, dcpa: %f\n", tcpa, dcpa);
 
   float angleb = atan2f((robot2->pos.y - robot1->pos.y), (robot2->pos.x - robot1->pos.x));
-  float deltad = float_vect_norm(drel, 2);
+  float deltad = norm_drel;
   float angleb1 = angleb - atan(RR / deltad);
   float angleb2 = angleb + atan(RR / deltad);
 
@@ -155,47 +159,53 @@ bool percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2,
   centre[0] = robot1->pos.x + robot2->vel.x; 
   centre[1] = robot1->pos.y + robot2->vel.y;
 
-  // avoid calling the avoidance funtion after reaching the waypoint. 
-  // "percevite_requires_avoidance" will only be true if the destination is far
-  float closest_wp_dist = 100; // 100 meters
-  for (int i = 0; i < (WP_p1 + 5); i++) {
-    float current_distance = get_dist2_to_waypoint(i);
-    if (current_distance < closest_wp_dist) {
-      closest_wp_dist = current_distance;
-      if (closest_wp_dist < RR) {
-        printf("Reached a waypoint, stop velobs temporarily..\n");
-        return false;
-      }
-    }
-  }
-  
+  printf("pos: %d, neg: %d: \n", positive_ctr, negative_ctr);
   // collision is imminent if tcpa > 0 and dcpa < RR
   if ((tcpa > 0) && (tcpa < ETA_AVOID) && (dcpa < RR)) {
+    positive_ctr += 1;
+    negative_ctr = 0;
+  }
+  if (tcpa < -1.0) {
+    // if no collisions are predicted let flightplan take over..
+    negative_ctr += 1;
+    positive_ctr = 0;
+  }
+  // 20 at 10 Hz = 2 seconds
+  if (positive_ctr > 20) {
     float newvel_cart[2];
-    // [patch] co-ordination problem solved by forcing right
-    if ((vrel[0] + 3.0) >= vrel[1]) {
+    // [patch] co-ordination problem solved by forcing right (still creating confusion)
+    // if ((vrel[0] + 3.0) >= vrel[1]) {
       percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-    } else {
-      percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
-    }
-    
+    // } else {
+      // percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
+    // }
+    // initializing resolution vel @ 0.0 = stop at current waypoint
+    static float resolution_cmd[2] = {0.0, 0.0};
     if (deltad > RR) {
       resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
       resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
-      last_resolution_cmd[0] = resolution_cmd[0];
-      last_resolution_cmd[1] = resolution_cmd[1];
-    } 
+      // last_resolution_cmd[0] = resolution_cmd[0];
+      // last_resolution_cmd[1] = resolution_cmd[1];
+    } // else continue last_resolution_cmd!
+    
     // avoid resolution command being un-initialized...
-    else {  
-      // continue old resolution command..
-      resolution_cmd[0] = last_resolution_cmd[0];
-      resolution_cmd[1] = last_resolution_cmd[1];
-    }  
-    return true;
+    // else {
+    //   // continue old resolution command..
+    //   resolution_cmd[0] = last_resolution_cmd[0];
+    //   resolution_cmd[1] = last_resolution_cmd[1];
+    // }
+
+    struct EnuCoor_i new_coord;
+    // todo verify x y ned enu swap
+    new_coord.x = POS_BFP_OF_REAL(robot1->pos.x + VEL_STEP * resolution_cmd[0]); // TODO: vel*dt
+    new_coord.y = POS_BFP_OF_REAL(robot1->pos.y + VEL_STEP * resolution_cmd[1]); // TODO: vel*dt
+    waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
+    printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
+    percevite_requires_avoidance = true;
   }
-  else {
-    // if no collisions are predicted let flightplan take over..
-    return false;
+  if (negative_ctr > 30) {
+    printf("[POS] mode\n");
+    percevite_requires_avoidance = false;
   }
 }
 
@@ -237,18 +247,21 @@ void percevite_vo_periodic(void) {
         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
         drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
   
-  // resolution command changes the vel"h" of robot1 to avoid collision
-  float resolution_cmd[2] = {0.0, 0.0};
-  percevite_requires_avoidance = percevite_vo_detect(&drone1, &drone2, resolution_cmd);
+  percevite_vo_detect(&drone1, &drone2);
 
-  if (percevite_requires_avoidance) {
-    struct EnuCoor_i new_coord;
-    // todo verify x y ned enu swap
-    new_coord.x = POS_BFP_OF_REAL(drone1.pos.x + VEL_STEP * resolution_cmd[0]); // TODO: vel*dt
-    new_coord.y = POS_BFP_OF_REAL(drone1.pos.y + VEL_STEP * resolution_cmd[1]); // TODO: vel*dt
-    waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
-    printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
-  } else {
-    printf("[POS] mode\n");
-  }
 }
+
+
+  // avoid calling the avoidance funtion after reaching the waypoint. 
+  // "percevite_requires_avoidance" will only be true if the destination is far
+  // float closest_wp_dist = 100; // 100 meters
+  // for (int i = 0; i < (WP_p1 + 5); i++) {
+  //   float current_distance = get_dist2_to_waypoint(i);
+  //   if (current_distance < closest_wp_dist) {
+  //     closest_wp_dist = current_distance;
+  //     if (closest_wp_dist < RR) {
+  //       printf("Reached a waypoint, stop velobs temporarily..\n");
+  //       return false;
+  //     }
+  //   }
+  // }
