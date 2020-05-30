@@ -125,10 +125,10 @@ static void tx_data_struct(uart_packet_t *uart_packet_tx) {
 
 // rx: print struct received after checksum match
 static void print_drone_struct(uart_packet_t *uart_packet_rx) {
-	// printf("[rx] id: %d, x: %f, y: %f, velx: %f, vely: %f\n", 
-	// 				uart_packet_rx->info.drone_id,
-	// 				uart_packet_rx->data.pos.x, uart_packet_rx->data.pos.y,
-	// 				uart_packet_rx->data.vel.x, uart_packet_rx->data.vel.y);
+	printf("[rx] id: %d, x: %f, y: %f, velx: %f, vely: %f\n", 
+					uart_packet_rx->info.drone_id,
+					uart_packet_rx->data.pos.x, uart_packet_rx->data.pos.y,
+					uart_packet_rx->data.vel.x, uart_packet_rx->data.vel.y);
 }
 
 
@@ -309,7 +309,7 @@ static void esp_parse(uint8_t c) {
 
 // uart rx: event based polling function for data rxed from esp32
 void percevite_wifi_rx_event(void) {
-	// // Look for data on serial link and send to parser
+	// Look for data on serial link and send to parser
 	while (uart_char_available(&(ESP_UART_PORT))) {
 		uint8_t ch = uart_getch(&(ESP_UART_PORT));
 		esp_parse(ch);
@@ -330,23 +330,9 @@ static void clear_drone_status(void) {
 void percevite_wifi_init() {
 
 	drone_data_f = fopen("drone_data.csv", "w+");
-	clear_drone_status();
-
-	/* GPS init
-	// already done at GPS init
-	struct LlaCoor_i *lla_ref = stateGetPositionLla_i();
-	struct LtpDef_i *ltp_def;
-	ltp_def_from_lla_i(&ltp_def, &lla_ref);
-	stateSetLocalOrigin_i(&ltp_def);
-	*/
-	
+	clear_drone_status();	
 	printf("-----------------Drone ID: [%d]-----------------\n", SELF_ID);
 
-	// struct LlaCoor_f *lla_ref_f = stateGetPositionLla_f();
-  // bool gps_valid_startup = stateIsLocalCoordinateValid();
-	// printf("GPS initialized with [%d] at lat: %f, long: %f \n", 
-	// 				gps_valid_startup, 
-	// 				lla_ref_f->lat * 180.0/3.142, lla_ref_f->lon * 180.0/3.142);
 }
 
 // change ssid ten times every second

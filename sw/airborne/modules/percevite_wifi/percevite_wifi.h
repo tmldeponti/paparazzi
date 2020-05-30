@@ -32,8 +32,6 @@ extern "C" {
 
 #include "mcu_periph/uart.h"
 
-#define ESP_UART_PORT uart2
-
 // SELF_ID to be defined via airframe xml 
 
 #define ESP_MAX_LEN 50
