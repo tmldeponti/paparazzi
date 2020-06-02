@@ -343,7 +343,7 @@ void percevite_wifi_tx_loop() {
 		struct EnuCoor_f *vel_gps = stateGetSpeedEnu_f();
 		
 		// for yaw..
-		struct FloatEulers *att = stateGetNedToBodyEulers_f();
+		// struct FloatEulers *att = stateGetNedToBodyEulers_f();
 
 		dr_data[SELF_ID].pos.x = pos_gps->x;
 		dr_data[SELF_ID].pos.y = pos_gps->y;

@@ -187,7 +187,7 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
       // last_resolution_cmd[0] = resolution_cmd[0];
       // last_resolution_cmd[1] = resolution_cmd[1];
     } // else continue last_resolution_cmd!
-    
+
     // avoid resolution command being un-initialized...
     // else {
     //   // continue old resolution command..
@@ -214,7 +214,7 @@ void vo_simulate_loop(drone_data_t* robot_sim) {
   robot_sim->pos.y += robot_sim->vel.y;
 }
 
-drone_data_t drone1, drone2;
+drone_data_t drone1, drone2, obstacle_dr;
 void percevite_vo_init(void) {
   percevite_requires_avoidance = false;
   printf("VO init done\n");
@@ -231,17 +231,27 @@ void percevite_vo_periodic(void) {
   drone1 = dr_data[1];
 
   drone2 = dr_data[2];
+
+  #if SELF_ID == 1
+    obstacle_dr = drone2;
+  #else 
+    obstacle_dr = drone1;
+  #endif
+
   // sitting duck (sim)
   /*********** if mode == NPS ****************/
-  drone2.pos.x = waypoint_get_x(WP_DRONE2);
-  drone2.pos.y = waypoint_get_y(WP_DRONE2);
-  drone2.vel.x = 0.0;
-  drone2.vel.y = 0.0;
+  // drone2.pos.x = waypoint_get_x(WP_DRONE2);
+  // drone2.pos.y = waypoint_get_y(WP_DRONE2);
+  // drone2.vel.x = 0.0;
+  // drone2.vel.y = 0.0;
   /*********** else if mode == AP ****************/
-  // struct EnuCoor_i drone2cor;
-  // drone2cor.x = POS_BFP_OF_REAL(drone2.pos.x);
-  // drone2cor.y = POS_BFP_OF_REAL(drone2.pos.y);
-  // waypoint_move_xy_i(WP_DRONE2, drone2cor.x, drone2cor.y);
+  struct EnuCoor_i obstacle;
+  obstacle.x = POS_BFP_OF_REAL(obstacle_dr.pos.x);
+  obstacle.y = POS_BFP_OF_REAL(obstacle_dr.pos.y);
+  waypoint_move_xy_i(WP_OBS, obstacle.x, obstacle.y);
+
+  float alt_from_p1 = waypoint_get_alt(WP_p1);
+  waypoint_set_alt(WP_OBS, alt_from_p1);
 
   printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
         drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,

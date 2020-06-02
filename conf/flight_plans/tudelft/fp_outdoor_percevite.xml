@@ -1,8 +1,10 @@
 <!DOCTYPE flight_plan SYSTEM "../flight_plan.dtd">
 <!--refer: rotorcraft survey mission flightplan -->
-<!-- Fellowship center: 51.9910406, 4.3772205 -->
+<!-- Fellowship center: 51.991029°, 4.378361 -->
 <!-- Valkenburg: 52.1681438,4.4119717,187m-->
-<flight_plan alt="10" ground_alt="0" lat0="51.9910406" lon0="4.3772205" max_dist_from_home="75" name="Delft Basic" security_height="2">
+<!-- Rugby centre: 52.018564,4.373024 -->
+<!-- home:    52.013881°4.373010° -->
+<flight_plan alt="10" ground_alt="0" lat0="51.991029" lon0="4.378361" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"
@@ -17,15 +19,12 @@
     <waypoint name="AVOID" x="-12.0" y="-5.0"/>
     <waypoint name="p1" x="38.5" y="38.5"/>
     <waypoint name="p2" x="-0.6" y="21.6"/>
-    <waypoint name="DRONE2" x="25.0" y="25.0"/>
-    <!--waypoint name="p3" x="22.2" y="-26.5"/>
-    <waypoint name="p4" x="4.9" y="-34.4"/>
-    <waypoint name="CAM" x="14.2" y="-29.4"/-->
+    <waypoint name="OBS" x="25.0" y="25.0"/>
     <waypoint name="TD" x="5.6" y="-10.9"/>
-    <waypoint x="50" y="-50" name="FA1"/> <!--lat="51.9907109" lon="4.3788250"-->
-    <waypoint x="50" y="50" name="FA2"/> <!--lat="51.9913839" lon="4.3783137"-->
-    <waypoint x="-50" y="50" name="FA3"/> <!--lat="51.9912810" lon="4.3778320"-->
-    <waypoint x="-50" y="-50" name="FA4"/> <!--lat="51.9905797" lon="4.3783202"-->
+    <waypoint x="50" y="-50"  name="FA1"/>  <!--waypoint lat="51.9907109" lon="4.3788250"  name="FA1"/-->
+    <waypoint x="50" y="50"   name="FA2"/>  <!--waypoint lat="51.9913839" lon="4.3783137"  name="FA2"/-->
+    <waypoint x="-50" y="50"  name="FA3"/>  <!--waypoint lat="51.9912810" lon="4.3778320"  name="FA3"/-->
+    <waypoint x="-50" y="-50" name="FA4"/>  <!--waypoint lat="51.9905797" lon="4.3783202"  name="FA4"/-->
   </waypoints>
   <sectors>
     <sector color="red" name="Flight_Area">
@@ -39,20 +38,20 @@
   <exceptions>
     <!-- Avoid -->
     <exception cond="((percevite_requires_avoidance == true) &&
-      (nav_block == IndexOfBlock('Line12')) &&
+      (nav_block == IndexOfBlock('Line12')) && (SELF_ID == 1) &&
       (autopilot_in_flight() == true) )" deroute="PercEviteAvoid12"/>
 
     <exception cond="((percevite_requires_avoidance == true) &&
-      (nav_block == IndexOfBlock('Line21')) &&
+      (nav_block == IndexOfBlock('Line21')) && (SELF_ID == 1) &&
       (autopilot_in_flight() == true) )" deroute="PercEviteAvoid21"/>
 
     <!-- After Avoiding -->
     <exception cond="((percevite_requires_avoidance == false) &&
-      (nav_block == IndexOfBlock('PercEviteAvoid12')) &&
+      (nav_block == IndexOfBlock('PercEviteAvoid12')) && (SELF_ID == 1) &&
       (autopilot_in_flight() == true) )" deroute="Line12"/>
 
     <exception cond="((percevite_requires_avoidance == false) &&
-      (nav_block == IndexOfBlock('PercEviteAvoid21')) &&
+      (nav_block == IndexOfBlock('PercEviteAvoid21')) && (SELF_ID == 1) &&
       (autopilot_in_flight() == true) )" deroute="Line21"/>
       <!-- resume -->
 
@@ -112,6 +111,14 @@
       <stay wp="STDBY"/>
     </block>
 
+    <block name="Line12" strip_button="Line12" strip_icon="line.png">
+      <go from="p1" hmode="route" wp="p2"/>
+    </block>
+    <block name="Line21">
+      <go from="p2" hmode="route" wp="p1"/>
+      <deroute block="Line12"/>
+    </block>
+
     <block name="PercEviteAvoid12">
       <stay wp="AVOID"/>
     </block>
@@ -119,7 +126,7 @@
       <stay wp="AVOID"/>
     </block>
 
-    <block name="stay_p1">
+    <block name="stay_p1" strip_button="stay_p1" strip_icon="flat_theme/lookdown.png">
       <stay wp="p1"/>
     </block>
     <block name="go_p2">
@@ -131,14 +138,6 @@
       <stay until="stage_time>10" wp="p2"/>
       <go from="p2" hmode="route" wp="p1"/>
       <deroute block="stay_p1"/>
-    </block>
-
-    <block name="Line12">
-      <go from="p1" hmode="route" wp="p2"/>
-    </block>
-    <block name="Line21">
-      <go from="p2" hmode="route" wp="p1"/>
-      <deroute block="Line12"/>
     </block>
 
     <block name="landHere" strip_button="LandHere" strip_icon="land-right.png">
