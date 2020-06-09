@@ -610,3 +610,205 @@ void int32_eulers_dot_321_of_rates(struct Int32Eulers *ed, struct Int32Eulers *e
     INT_EULERS_ZERO(*ed);
   }
 }
+
+#include<stdio.h>
+#include<math.h>
+
+void matrix_multiplication(int m1, int m2, float mat1[][m2], int n1, int n2, float mat2[][n2],float res[m1][n2]);
+void matrix_multiplication_with_vector(int m1, int m2, float mat1[m1][m2], int n1, float mat2[n1],float res[m1]);
+void transpose_matrix(int N, float A[][N], float B[][N]);
+void crossProduct(float vect_A[], float vect_B[], float cross_P[]);
+void Rv_calculation(float tilt_error,float v[3][3],float Rvv[3][3]);
+float norm(int N,float vector[N]);
+
+
+void matrix_multiplication(int m1, int m2, float mat1[][m2], int n1, int n2, float mat2[][n2],float res[m1][n2])
+{
+    int x, i, j;
+    for (i = 0; i < m1; i++)
+    {
+        for (j = 0; j < n2; j++)
+        {
+            res[i][j] = 0;
+            for (x = 0; x < m2; x++)
+            {
+                res[i][j] += mat1[i][x]*mat2[x][j];
+            }
+        }
+    }
+}
+
+void matrix_multiplication_with_vector(int m1, int m2, float mat1[m1][m2], int n1, float mat2[n1],float res[m1])
+{
+    int x, i;
+    for (i = 0; i < m1; i++)
+    {
+            res[i] = 0;
+            for (x = 0; x < m2; x++)
+            {
+                res[i] += mat1[i][x] * mat2[x];
+            }
+
+    }
+}
+
+void transpose_matrix(int N, float A[][N], float B[][N])
+{
+    int i, j;
+    for (i = 0; i < N; i++)
+        for (j = 0; j < N; j++)
+            B[i][j] = A[j][i];
+}
+
+void crossProduct(float vect_A[], float vect_B[], float cross_P[])
+{
+
+    cross_P[0] = vect_A[1] * vect_B[2] - vect_A[2] * vect_B[1];
+    cross_P[1] = vect_A[2] * vect_B[0] - vect_A[0] * vect_B[2];
+    cross_P[2] = vect_A[0] * vect_B[1] - vect_A[1] * vect_B[0];
+
+}
+
+void Rv_calculation(float tilt_error,float v[3][3],float Rvv[3][3])
+{
+	//v*sin(tilt_error)
+	float sin_tilt = sin(tilt_error);
+	int row, columns;
+	float v_1[3][3],v_2[3][3];
+	for (row=0; row<3; row++)
+	{
+	    for(columns=0; columns<3; columns++)
+	    {
+	         v_1[row][columns] = v[row][columns]*sin_tilt;
+	    }
+	}
+
+	float cos_tilt = cos(tilt_error);
+	float v2[3][3];
+	matrix_multiplication(3,3,v,3,3,v,v2);
+	for (row=0; row<3; row++)
+	{
+		for(columns=0; columns<3; columns++)
+		{
+			 v_2[row][columns] = v2[row][columns]*(1-cos_tilt);
+		}
+	}
+	float unit[3][3] = {
+			{1,0,0},
+			{0,1,0},
+			{0,0,1}
+	};
+	for (row=0; row<3; row++)
+	{
+		for(columns=0; columns<3; columns++)
+		{
+			 Rvv[row][columns] = unit[row][columns] + v_1[row][columns] + v_2[row][columns];
+		}
+	}
+}
+
+float norm(int N,float vector[N])
+{
+	int i;
+	float local_norm = 0;
+	for(i=0; i<N; i++){
+		local_norm += vector[i]*vector[i];
+	}
+	local_norm = sqrt(local_norm);
+	return local_norm;
+}
+
+void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, struct FloatQuat *a2c)
+{
+	float q_des[4] = {a2c->qi , a2c->qx , a2c->qy , a2c->qz}; //insert the desired quaternion coordinates
+	//float q_des[4] = {1 , 0 , 0 , 0};
+	float q_cur[4] = {a2b->qi , a2b->qx , a2b->qy , a2b->qz}; //insert the current quaternion coordinates
+	float q_des_norm = norm(4 , q_des); //get the norm of the quaternion desired
+	float q_cur_norm = norm(4 , q_cur); //get the norm of the quaternion current
+
+	float qi_des = q_des[0]/q_des_norm; //get the normalised quaternion components
+	float qx_des = q_des[1]/q_des_norm;
+	float qy_des = q_des[2]/q_des_norm;
+	float qz_des = q_des[3]/q_des_norm;
+
+	float qi_cur = q_cur[0]/q_cur_norm;
+	float qx_cur = q_cur[1]/q_cur_norm;
+	float qy_cur = q_cur[2]/q_cur_norm;
+	float qz_cur = q_cur[3]/q_cur_norm;
+
+	//Define rotation matrix for the desired quaternion
+	float rot_des_matrix[3][3] =
+	{
+		{qi_des * qi_des + qx_des * qx_des - qy_des * qy_des - qz_des * qz_des , 2 * ( qx_des * qy_des + qz_des * qi_des) , 2 * ( qx_des * qz_des - qy_des * qi_des )},
+		{2 * ( qx_des * qy_des - qz_des * qi_des) , qi_des * qi_des - qx_des * qx_des + qy_des * qy_des - qz_des * qz_des , 2 * (qy_des * qz_des + qx_des * qi_des)},
+		{2 * ( qx_des * qz_des + qy_des * qi_des) , 2 * ( qy_des * qz_des - qx_des * qi_des) , qi_des * qi_des - qx_des * qx_des - qy_des * qy_des + qz_des * qz_des},
+	};
+	
+	//Define rotation matrix for the current quaternion
+	float rot_cur_matrix[3][3] =
+	{
+		{qi_cur * qi_cur + qx_cur * qx_cur - qy_cur * qy_cur - qz_cur * qz_cur , 2 * ( qx_cur * qy_cur + qz_cur * qi_cur) , 2 * ( qx_cur * qz_cur - qy_cur * qi_cur )},
+		{2 * ( qx_cur * qy_cur - qz_cur * qi_cur) , qi_cur * qi_cur - qx_cur * qx_cur + qy_cur * qy_cur - qz_cur * qz_cur , 2 * (qy_cur * qz_cur + qx_cur * qi_cur)},
+		{2 * ( qx_cur * qz_cur + qy_cur * qi_cur) , 2 * ( qy_cur * qz_cur - qx_cur * qi_cur) , qi_cur * qi_cur - qx_cur * qx_cur - qy_cur * qy_cur + qz_cur * qz_cur},
+	};
+
+	//define error matrix
+	float rot_cur_tran_matrix[3][3];
+	float error_matrix[3][3];
+	transpose_matrix(3, rot_cur_matrix , rot_cur_tran_matrix); //transpose the rotation matrix of the current attitude
+	matrix_multiplication(3,3,rot_des_matrix,3,3,rot_cur_tran_matrix,error_matrix); //give error matrix
+	//define tilt errors
+	double tilt_error_1 = atan2(error_matrix[1][2],error_matrix[1][1]);
+	double tilt_error_2 = -1 * atan2(error_matrix[0][2],error_matrix[0][0]);
+
+	float i_des[3] = {rot_des_matrix[2][0],rot_des_matrix[2][1],rot_des_matrix[2][2]};
+	float i_cur[3] = {rot_cur_matrix[2][0],rot_cur_matrix[2][1],rot_cur_matrix[2][2]};
+
+	float dot_tilt_error = rot_des_matrix[2][0] * rot_cur_matrix[2][0] + rot_des_matrix[2][1] * rot_cur_matrix[2][1] + rot_des_matrix[2][2] * rot_cur_matrix[2][2];
+	float tilt_error = acos(dot_tilt_error);
+	float cross_cur_des[3];
+	crossProduct(i_cur,i_des,cross_cur_des);
+	float norm_cross_cur_des = norm(3,cross_cur_des);
+	cross_cur_des[0] = cross_cur_des[0]/norm_cross_cur_des; cross_cur_des[1] = cross_cur_des[1]/norm_cross_cur_des; cross_cur_des[2] = cross_cur_des[2]/norm_cross_cur_des;
+	float vb[3];
+	matrix_multiplication_with_vector(3,3,rot_cur_matrix,3,cross_cur_des,vb);
+	float v[3][3] =
+	{
+		 {0       , -1*vb[2] , vb[1]   },
+	     {vb[2]   , 0        , -1*vb[0]},
+		 {-1*vb[1], vb[0]    , 0}
+	};
+	float Rv[3][3] =
+			{
+					{1,0,0},
+					{0,1,0},
+					{0,0,1}
+			};
+	if(tilt_error > 0.001 || tilt_error < 3.141)
+	{
+		Rv_calculation(tilt_error,v,Rv);
+	}
+	float Rv_transp[3][3], Rp[3][3];
+	transpose_matrix(3,Rv,Rv_transp);
+	matrix_multiplication(3,3,Rv_transp,3,3,rot_cur_matrix,Rp);
+	float rot_des_twist_comp[3]= {rot_des_matrix[0][0],rot_des_matrix[0][1],rot_des_matrix[0][2]};
+	float Rp_twist_comp[3] = {Rp[0][0],Rp[0][1],Rp[0][2]};
+	float dot_Rp_rot_des = rot_des_twist_comp[0] * Rp_twist_comp[0] + rot_des_twist_comp[1] * Rp_twist_comp[1] +rot_des_twist_comp[2] * Rp_twist_comp[2];
+	float twist_error = acos(dot_Rp_rot_des);
+	if (twist_error < 0) {
+		twist_error *= -1;
+	}
+	float Rp2_twist_comp[3] = {Rp[1][0],Rp[1][1],Rp[1][2]};
+	float dot_Rp2_rot_des = rot_des_twist_comp[0] * Rp2_twist_comp[0] + rot_des_twist_comp[1] * Rp2_twist_comp[1] +rot_des_twist_comp[2] * Rp2_twist_comp[2];
+	float theta_sign = acos(dot_Rp2_rot_des);
+	if (theta_sign < 0) {
+		theta_sign *= -1;
+	}
+	if (theta_sign > 1.57079632679){
+		twist_error *= -1;
+	}
+	b2c->qi = 0;
+	b2c->qx = tilt_error_1;
+	b2c->qy = tilt_error_2;
+	b2c->qz = twist_error;
+}

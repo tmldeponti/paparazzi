@@ -67,6 +67,14 @@ struct Int32AttitudeGains stabilization_gains = {
 #error "ALL control gains have to be positive!!!"
 #endif
 
+
+struct FloatQuat att_err_f;
+struct FloatQuat att_ref_quat_f;
+struct Int32Quat att_err_log;
+struct Int32Quat att_err_i_log;
+struct Int32Rates rate_err_log;
+struct Int32Rates rate_ref_scaled_log;
+
 struct Int32Quat stabilization_att_sum_err_quat;
 
 int32_t stabilization_att_fb_cmd[COMMANDS_NB];
@@ -109,6 +117,25 @@ static void send_att(struct transport_tx *trans, struct link_device *dev)   //FI
                                   &stabilization_cmd[COMMAND_PITCH],
                                   &stabilization_cmd[COMMAND_YAW]);
 }
+
+static void send_Quats(struct transport_tx *trans, struct link_device *dev)
+{
+  struct FloatQuat *quat = stateGetNedToBodyQuat_f();
+  QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
+  pprz_msg_send_Quats(trans, dev, AC_ID,
+					  &(quat->qi),
+                      &(quat->qx),
+                      &(quat->qy),
+                      &(quat->qz),
+					  &att_ref_quat_f.qi,//&att_ref_quat_i.rate.p,//
+					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
+                      &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
+                      &att_ref_quat_f.qz,
+					  &att_err_f.qx,
+					  &att_err_f.qy,
+					  &att_err_f.qz);
+}
+		
 
 static void send_att_ref(struct transport_tx *trans, struct link_device *dev)
 {
@@ -156,6 +183,7 @@ void stabilization_attitude_init(void)
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_INT, send_att);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_REF_INT, send_att_ref);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AHRS_REF_QUAT, send_ahrs_ref_quat);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_Quats, send_Quats);
 #endif
 }
 
@@ -255,15 +283,24 @@ void stabilization_attitude_run(bool enable_integrator)
   /*
    * Compute errors for feedback
    */
-
-  /* attitude error                          */
+    /* attitude error                          */
   struct Int32Quat att_err;
+  struct Int32Quat att_err_i;
+  //struct FloatQuat att_ref_quat_f;
+  
+  struct FloatQuat *att_quat_f = stateGetNedToBodyQuat_f();
+  QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
+  tilt_twist(&att_err_f, att_quat_f, &att_ref_quat_f);
+  QUAT_BFP_OF_REAL(att_err,att_err_f);
+  
   struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
-  int32_quat_inv_comp(&att_err, att_quat, &att_ref_quat_i.quat);
+  int32_quat_inv_comp(&att_err_i, att_quat, &att_ref_quat_i.quat);
   /* wrap it in the shortest direction       */
-  int32_quat_wrap_shortest(&att_err);
+  //int32_quat_wrap_shortest(&att_err);
   int32_quat_normalize(&att_err);
 
+  QUAT_COPY(att_err_log, att_err);
+  QUAT_COPY(att_err_i_log,att_err_i);
   /*  rate error                */
   const struct Int32Rates rate_ref_scaled = {
     OFFSET_AND_ROUND(att_ref_quat_i.rate.p, (REF_RATE_FRAC - INT32_RATE_FRAC)),
@@ -273,7 +310,8 @@ void stabilization_attitude_run(bool enable_integrator)
   struct Int32Rates rate_err;
   struct Int32Rates *body_rate = stateGetBodyRates_i();
   RATES_DIFF(rate_err, rate_ref_scaled, (*body_rate));
-
+  RATES_COPY(rate_err_log,rate_err);
+  RATES_COPY(rate_ref_scaled_log,rate_ref_scaled);
 #define INTEGRATOR_BOUND 100000
   /* integrated error */
   if (enable_integrator) {
@@ -295,9 +333,9 @@ void stabilization_attitude_run(bool enable_integrator)
   attitude_run_fb(stabilization_att_fb_cmd, &stabilization_gains, &att_err, &rate_err, &stabilization_att_sum_err_quat);
 
   /* sum feedforward and feedback */
-  stabilization_cmd[COMMAND_ROLL] = stabilization_att_fb_cmd[COMMAND_ROLL] + stabilization_att_ff_cmd[COMMAND_ROLL];
-  stabilization_cmd[COMMAND_PITCH] = stabilization_att_fb_cmd[COMMAND_PITCH] + stabilization_att_ff_cmd[COMMAND_PITCH];
-  stabilization_cmd[COMMAND_YAW] = stabilization_att_fb_cmd[COMMAND_YAW] + stabilization_att_ff_cmd[COMMAND_YAW];
+  stabilization_cmd[COMMAND_ROLL] = stabilization_att_fb_cmd[COMMAND_ROLL];// + stabilization_att_ff_cmd[COMMAND_ROLL];
+  stabilization_cmd[COMMAND_PITCH] = stabilization_att_fb_cmd[COMMAND_PITCH];// + stabilization_att_ff_cmd[COMMAND_PITCH];
+  stabilization_cmd[COMMAND_YAW] = stabilization_att_fb_cmd[COMMAND_YAW];// + stabilization_att_ff_cmd[COMMAND_YAW];
 
   /* bound the result */
   BoundAbs(stabilization_cmd[COMMAND_ROLL], MAX_PPRZ);

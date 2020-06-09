@@ -33,6 +33,11 @@
 			<field name="yaw" value="yaw" />
 			<field name="pitch" value="pitch" />
 		</message>
+
+		<!--<message class="ground" name="DL_SETTING" on_event="shoot">
+		<field name="index" value="IndexOfSetting(autopilot.kill_throttle)"/>
+		<field name="value" value="mode"/>
+		</message>-->
 	</messages>
 
 </joystick>

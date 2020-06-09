@@ -308,6 +308,7 @@ void stabilization_attitude_run(bool enable_integrator)
   /* attitude error                          */
   struct FloatQuat att_err;
   struct FloatQuat *att_quat = stateGetNedToBodyQuat_f();
+  
   float_quat_inv_comp(&att_err, att_quat, &att_ref_quat_f.quat);
   /* wrap it in the shortest direction       */
   float_quat_wrap_shortest(&att_err);

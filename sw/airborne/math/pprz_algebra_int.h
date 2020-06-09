@@ -39,7 +39,7 @@ extern "C" {
 #include "math/pprz_algebra.h"
 #include "math/pprz_trig_int.h"
 #include <stdlib.h>
-
+#include "math/pprz_algebra_float.h"
 
 struct Uint8Vect3 {
   uint8_t x;
@@ -110,6 +110,15 @@ struct Int64Quat {
   int64_t qy;
   int64_t qz;
 };
+
+struct FloatQuat2 {
+  float qi;
+  float qx;
+  float qy;
+  float qz;
+};
+
+
 
 
 /* Euler angles                                 */
@@ -478,6 +487,7 @@ extern void int32_quat_comp_inv(struct Int32Quat *a2b, struct Int32Quat *a2c, st
  */
 extern void int32_quat_inv_comp(struct Int32Quat *b2c, struct Int32Quat *a2b, struct Int32Quat *a2c);
 
+extern void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, struct FloatQuat *a2c);
 /** Composition (multiplication) of two quaternions with normalization.
  * a2c = a2b comp b2c , aka  a2c = a2b * b2c
  */
@@ -717,3 +727,4 @@ static inline void int32_mat_mul(int32_t **o, int32_t **a, int32_t **b, int m, i
 #endif /* PPRZ_ALGEBRA_INT_H */
 /** @}*/
 /** @}*/
+
