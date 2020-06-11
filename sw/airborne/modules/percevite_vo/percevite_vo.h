@@ -32,8 +32,8 @@
 // obstacle radius
 #define RR  10.0
 
-// avoid only if danger in the next 12 seconds
-#define ETA_AVOID 12.0
+// avoid only if danger in the next 8 seconds
+#define ETA_AVOID 8.0
 
 // GPS measurement error on relative velocity
 #define GPS_ACCURACY_VEL 1.5

@@ -262,7 +262,9 @@ static void esp_parse(uint8_t c) {
 
 				/* now revise the entire packet.. for dropout logs later */
 				uart_packet_rx.data = dr_data[drone_id];
-				print_drone_struct(&uart_packet_rx);
+				#ifdef DBG
+					print_drone_struct(&uart_packet_rx);
+				#endif
 			}
 
 			if (packet_type == COLOR_FRAME) {
