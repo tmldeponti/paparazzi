@@ -16,8 +16,8 @@
     <waypoint name="CLIMB" x="0.0" y="5.0"/>
     <waypoint name="STDBY" x="-2.0" y="-5.0"/>
     <waypoint name="AVOID" x="-12.0" y="-5.0"/>
-    <waypoint name="p1" x="38.5" y="38.5"/>
-    <waypoint name="p2" x="-0.6" y="21.6"/>
+    <waypoint name="p1" x="40.5" y="-40.5"/>
+    <waypoint name="p2" x="-40.5" y="40.5"/>
     <waypoint name="OBS" x="25.0" y="25.0"/>
     <waypoint name="TD" x="5.6" y="-10.9"/>
     <waypoint x="50" y="-50"  name="FA1"/>  <!--waypoint lat="51.9907109" lon="4.3788250"  name="FA1"/-->

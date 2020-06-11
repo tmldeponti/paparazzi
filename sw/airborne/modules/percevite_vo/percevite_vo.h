@@ -33,7 +33,7 @@
 #define RR  10.0
 
 // avoid only if danger in the next 8 seconds
-#define ETA_AVOID 8.0
+#define ETA_AVOID 10.0
 
 // GPS measurement error on relative velocity
 #define GPS_ACCURACY_VEL 1.5
@@ -59,12 +59,8 @@ extern void percevite_vo_init(void);
 /* VO periodic: detect and avoid */
 extern void percevite_vo_periodic(void);
 
-/* position control: cmd loop */
-extern void lateral_pos_ctrl(void);
-/* position control: lateral velocity control loop, shared by VO */
-void lateral_vel_ctrl(float velcmd_body_x, float velcmd_body_y);
-/* position control: copy and send command to outerloop */
-void percevite_get_cmd(float *roll, float *pitch, float* yaw);
+/* VO simulate: non autostart */
+extern void percevite_vo_simulate_loop(void);
 
 /* hero functions: velocity obstacle math */
 void percevite_vo_resolve_by_project(const drone_data_t *robot1, float angle1, float angle2, float *centre, float *newvela);
