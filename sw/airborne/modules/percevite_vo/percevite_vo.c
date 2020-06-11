@@ -21,6 +21,7 @@
 /** @file "modules/percevite_vo/percevite_vo.h"
  * @author nilay994 <nilay994>
  * Percevite's Velocity Obsctacle for GPS and avoid
+ * don't make AVOID waypoints go too near the real flightplan waypoints
  */
 
  /* printf and fprintf */
@@ -75,10 +76,6 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
     vel_a_w[0] = robot_a->pos.x + robot_a->vel.x;
     vel_a_w[1] = robot_a->pos.y + robot_a->vel.y;
 
-    // increase predicted vel.. measurement noise, feedfwd for drag
-    vel_a_w[0] += 0.5;
-    vel_a_w[1] += 0.5;
-
     float yintercept = centre[1] - (tanf(angle1) * centre[0]);
     float xintercept = 0.0;
 
@@ -114,7 +111,9 @@ void percevite_vo_resolve_by_project(const drone_data_t *robot_a, float angle1, 
         new_vel_a_bdy[0] = projected_pt[0] - robot_a->pos.x;
         new_vel_a_bdy[1] = projected_pt[1] - robot_a->pos.y;
 
-        printf("resolved: %f \t %f (m/s)\n", new_vel_a_bdy[0], new_vel_a_bdy[1]);
+        #ifdef DBG_VEL_OBS
+          printf("resolved: %f \t %f (m/s)\n", new_vel_a_bdy[0], new_vel_a_bdy[1]);
+        #endif
         
     } else {
         // if norm is lesser, give back old vel.. (not sure)
@@ -136,8 +135,8 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
   float norm_vrel = float_vect_norm(vrel, 2);
   float norm_drel = float_vect_norm(drel, 2);
 
-  static uint8_t positive_ctr = 0;
-  static uint8_t negative_ctr = 0;
+  static uint16_t positive_ctr = 0;
+  static uint16_t negative_ctr = 0;
 
   // both are barely moving and far apart
   if ((norm_vrel < GPS_ACCURACY_VEL) && (norm_drel > 3 * RR)) {
@@ -152,60 +151,122 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
 
   float angleb = atan2f((robot2->pos.y - robot1->pos.y), (robot2->pos.x - robot1->pos.x));
   float deltad = norm_drel;
-  float angleb1 = angleb - atan(RR / deltad);
-  float angleb2 = angleb + atan(RR / deltad);
+  float angleb1 = angleb - atanf(RR / deltad);
+  float angleb2 = angleb + atanf(RR / deltad);
 
   float centre[2];
   centre[0] = robot1->pos.x + robot2->vel.x; 
   centre[1] = robot1->pos.y + robot2->vel.y;
 
-  printf("pos: %d, neg: %d: \n", positive_ctr, negative_ctr);
+  static uint16_t high = 0;
+  static uint16_t low = 0;
+
+  // check if you must pick a smart non default direction of avoidance
+  // default (lower angle w.r.t. to North axis)
+  static bool non_default_dir = 0;
+
+  #ifdef DBG_VEL_OBS
+    printf("pos: %d, neg: %d \n", positive_ctr, negative_ctr);
+  #endif
   // collision is imminent if tcpa > 0 and dcpa < RR
   if ((tcpa > 0) && (tcpa < ETA_AVOID) && (dcpa < RR)) {
+    // positive re-inforcement towards final decision
     positive_ctr += 1;
     negative_ctr = 0;
+    
+    float obs_vel_norm = sqrtf(robot2->vel.y * robot2->vel.y + robot2->vel.x * robot2->vel.x);
+    
+    // chose direction of evasion before positive reinforcement is locked
+    if (obs_vel_norm > 1.5 && positive_ctr < 20) {
+      // high speed obs avoidance: activate non-default dir
+      non_default_dir = 1;
+
+      float obs_phase = atan2f(robot2->vel.y, robot2->vel.x);
+      printf("obs: %f, b1: %f, b2: %f\n", R2D * obs_phase, R2D * angleb1, R2D * angleb2);
+
+      float unit_v_0[2] = {cosf(obs_phase), sinf(obs_phase)};
+      float unit_v_1[2] = {cosf(angleb1), sinf(angleb1)};
+      float unit_v_2[2] = {cosf(angleb2), sinf(angleb2)};
+
+      float v0v1 = float_vect_dot_product(unit_v_0, unit_v_1, 2);
+      float v0v2 = float_vect_dot_product(unit_v_0, unit_v_2, 2);
+
+      // printf("v0v1: %f, v0v2: %f\n", v0v1, v0v2);
+      /* pick the side of velobs which has a bigger phase difference than obstacle's phase use a 
+         fuzzy, decision counter - avoids confusion in co-ordination and GPS measurement noise */
+      
+      // dot product is lower for vector which is least aligned with obstacle
+      if(v0v1 <= v0v2) {
+        low += 1;
+      } else {
+        high += 1;
+      }
+    }
   }
-  if (tcpa < -1.0) {
-    // if no collisions are predicted let flightplan take over..
-    negative_ctr += 1;
-    positive_ctr = 0;
+  #ifdef DBG_VEL_OBS
+    printf("low: %d, high: %d\n", low, high);
+  #endif
+  
+  else {
+    if (tcpa < -0.5) {
+      // if no collisions are predicted let flightplan take over..
+      negative_ctr += 1;
+      positive_ctr = 0;
+    }
   }
+  
   // 20 at 10 Hz = 2 seconds
   if (positive_ctr > 20) {
     float newvel_cart[2];
-    // [patch] co-ordination problem solved by forcing right (still creating confusion)
-    // if ((vrel[0] + 3.0) >= vrel[1]) {
+    // choose left or right
+    if(non_default_dir) {
+      if(low > high) {
+        percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
+        #ifdef DBG_VEL_OBS
+          printf("...........LOWER ANGLE\n");
+        #endif
+      } else {
+        percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
+        #ifdef DBG_VEL_OBS
+          printf("...........HIGHER ANGLE\n");
+        #endif
+      }
+    } else {
       percevite_vo_resolve_by_project(robot1, angleb1, angleb2, centre, newvel_cart);
-    // } else {
-      // percevite_vo_resolve_by_project(robot1, angleb2, angleb1, centre, newvel_cart);
-    // }
+      #ifdef DBG_VEL_OBS
+        printf("...........LOWER ANGLE\n");
+      #endif
+    }
+
     // initializing resolution vel @ 0.0 = stop at current waypoint
     static float resolution_cmd[2] = {0.0, 0.0};
     if (deltad > RR) {
       resolution_cmd[0] = min(max(newvel_cart[0], -MAX_VEL), MAX_VEL);
       resolution_cmd[1] = min(max(newvel_cart[1], -MAX_VEL), MAX_VEL);
-      // last_resolution_cmd[0] = resolution_cmd[0];
-      // last_resolution_cmd[1] = resolution_cmd[1];
-    } // else continue last_resolution_cmd!
-
-    // avoid resolution command being un-initialized...
-    // else {
-    //   // continue old resolution command..
-    //   resolution_cmd[0] = last_resolution_cmd[0];
-    //   resolution_cmd[1] = last_resolution_cmd[1];
-    // }
-
+    } // else continue last_resolution_cmd
     struct EnuCoor_i new_coord;
     // todo verify x y ned enu swap
     new_coord.x = POS_BFP_OF_REAL(robot1->pos.x + VEL_STEP * resolution_cmd[0]); // TODO: vel*dt
     new_coord.y = POS_BFP_OF_REAL(robot1->pos.y + VEL_STEP * resolution_cmd[1]); // TODO: vel*dt
+    
+    // lock flightplan to percevite_vo module's AVOID waypoint
     waypoint_move_xy_i(WP_AVOID, new_coord.x, new_coord.y);
-    printf("[OBS] mode\n"); //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
+    printf("[OBS] mode\n"); 
+    //new co-ord: %f, %f\n", waypoint_get_x(WP_AVOID), waypoint_get_y(WP_AVOID));
     percevite_requires_avoidance = true;
   }
-  if (negative_ctr > 30) {
+
+  if (negative_ctr > 20) {
+    // Avoided! Handoff to flightplan 
     printf("[POS] mode\n");
     percevite_requires_avoidance = false;
+  }
+
+  if (negative_ctr > 50) {
+    // clear L or R only well after avoidance
+    high = 0;
+    low = 0;
+    non_default_dir = 0;
   }
 }
 
@@ -219,7 +280,19 @@ void percevite_vo_init(void) {
   percevite_requires_avoidance = false;
   printf("VO init done\n");
 
-  // VO init not required when not SIMulating
+  /*********** if mode == SIM ****************/
+  #ifdef SIMMODE
+  drone2.pos.x = -10.0;
+  drone2.pos.y = -10.0;
+  drone2.vel.x = 0.12;
+  drone2.vel.y = 0.12;
+  #endif
+}
+
+void percevite_vo_simulate_loop(void) {
+  #ifdef SIMMODE
+    vo_simulate_loop(&drone2);
+  #endif
 }
 
 
@@ -230,7 +303,10 @@ void percevite_vo_periodic(void) {
   // overwrite dr_data for tx...  
   drone1 = dr_data[1];
 
-  drone2 = dr_data[2];
+  // if VEL_OBS is in SIM mode, then don't listen to WiFi module for obstacle co-ordinates
+  #ifndef SIMMODE
+    drone2 = dr_data[2];
+  #endif
 
   #if SELF_ID == 1
     obstacle_dr = drone2;
@@ -238,40 +314,22 @@ void percevite_vo_periodic(void) {
     obstacle_dr = drone1;
   #endif
 
-  // sitting duck (sim)
-  /*********** if mode == NPS ****************/
-  // drone2.pos.x = waypoint_get_x(WP_DRONE2);
-  // drone2.pos.y = waypoint_get_y(WP_DRONE2);
-  // drone2.vel.x = 0.0;
-  // drone2.vel.y = 0.0;
   /*********** else if mode == AP ****************/
   struct EnuCoor_i obstacle;
   obstacle.x = POS_BFP_OF_REAL(obstacle_dr.pos.x);
   obstacle.y = POS_BFP_OF_REAL(obstacle_dr.pos.y);
   waypoint_move_xy_i(WP_OBS, obstacle.x, obstacle.y);
 
+  // get altitude from rest of the waypoints
   float alt_from_p1 = waypoint_get_alt(WP_p1);
-  waypoint_set_alt(WP_OBS, alt_from_p1);
+  waypoint_set_alt(WP_AVOID, alt_from_p1);
 
-  printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-        drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
-        drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
+  #ifdef DBG_VEL_OBS
+    printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+          drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
+          drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
+  #endif
   
   percevite_vo_detect(&drone1, &drone2);
 
 }
-
-
-  // avoid calling the avoidance funtion after reaching the waypoint. 
-  // "percevite_requires_avoidance" will only be true if the destination is far
-  // float closest_wp_dist = 100; // 100 meters
-  // for (int i = 0; i < (WP_p1 + 5); i++) {
-  //   float current_distance = get_dist2_to_waypoint(i);
-  //   if (current_distance < closest_wp_dist) {
-  //     closest_wp_dist = current_distance;
-  //     if (closest_wp_dist < RR) {
-  //       printf("Reached a waypoint, stop velobs temporarily..\n");
-  //       return false;
-  //     }
-  //   }
-  // }
