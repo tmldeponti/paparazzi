@@ -3,7 +3,7 @@
 <!-- Fellowship center: 51.991029, 4.378361 -->
 <!-- Valkenburg: 52.1680869,4.4124674,187m-->
 <!-- home: 52.013881,4.373010 -->
-<flight_plan alt="8.0" ground_alt="0" lat0="52.1680869" lon0="4.4124674" max_dist_from_home="75" name="Delft Basic" security_height="2">
+<flight_plan alt="8.0" ground_alt="0" lat0="52.1682020" lon0="4.4128212" max_dist_from_home="75" name="Delft Basic" security_height="2">
   <header>
     #include "autopilot.h"
     #include "subsystems/datalink/datalink.h"
@@ -20,10 +20,10 @@
     <waypoint name="p2" x="40.5" y="40.5"/>
     <waypoint name="OBS" x="25.0" y="25.0"/>
     <waypoint name="TD" x="5.6" y="-10.9"/>
-    <waypoint x="50" y="-50"  name="FA1"/>  <!--waypoint lat="51.9907109" lon="4.3788250"  name="FA1"/-->
-    <waypoint x="50" y="50"   name="FA2"/>  <!--waypoint lat="51.9913839" lon="4.3783137"  name="FA2"/-->
-    <waypoint x="-50" y="50"  name="FA3"/>  <!--waypoint lat="51.9912810" lon="4.3778320"  name="FA3"/-->
-    <waypoint x="-50" y="-50" name="FA4"/>  <!--waypoint lat="51.9905797" lon="4.3783202"  name="FA4"/-->
+    <waypoint x="150" y="-150"  name="FA1"/>  <!--waypoint lat="51.9907109" lon="4.3788250"  name="FA1"/-->
+    <waypoint x="150" y="150"   name="FA2"/>  <!--waypoint lat="51.9913839" lon="4.3783137"  name="FA2"/-->
+    <waypoint x="-150" y="150"  name="FA3"/>  <!--waypoint lat="51.9912810" lon="4.3778320"  name="FA3"/-->
+    <waypoint x="-150" y="-150" name="FA4"/>  <!--waypoint lat="51.9905797" lon="4.3783202"  name="FA4"/-->
   </waypoints>
   <sectors>
     <sector color="red" name="Flight_Area">
