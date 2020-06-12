@@ -42,6 +42,9 @@
 /* gps functions */
 #include "state.h"
 
+// #define SIMMODE
+// #define DBG_VEL_OBS
+
 volatile bool percevite_requires_avoidance = false;
 
 /* externed from percevite_wifi */
@@ -182,8 +185,6 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
       non_default_dir = 1;
 
       float obs_phase = atan2f(robot2->vel.y, robot2->vel.x);
-      printf("obs: %f, b1: %f, b2: %f\n", R2D * obs_phase, R2D * angleb1, R2D * angleb2);
-
       float unit_v_0[2] = {cosf(obs_phase), sinf(obs_phase)};
       float unit_v_1[2] = {cosf(angleb1), sinf(angleb1)};
       float unit_v_2[2] = {cosf(angleb2), sinf(angleb2)};
@@ -191,7 +192,11 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
       float v0v1 = float_vect_dot_product(unit_v_0, unit_v_1, 2);
       float v0v2 = float_vect_dot_product(unit_v_0, unit_v_2, 2);
 
-      // printf("v0v1: %f, v0v2: %f\n", v0v1, v0v2);
+      #ifdef DBG_VEL_OBS
+        printf("obs: %f, b1: %f, b2: %f\n", R2D * obs_phase, R2D * angleb1, R2D * angleb2);
+        printf("v0v1: %f, v0v2: %f\n", v0v1, v0v2);
+      #endif
+
       /* pick the side of velobs which has a bigger phase difference than obstacle's phase use a 
          fuzzy, decision counter - avoids confusion in co-ordination and GPS measurement noise */
       
@@ -202,11 +207,7 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
         high += 1;
       }
     }
-  }
-  #ifdef DBG_VEL_OBS
-    printf("low: %d, high: %d\n", low, high);
-  #endif
-  
+  }  
   else {
     if (tcpa < -0.5) {
       // if no collisions are predicted let flightplan take over..
@@ -214,6 +215,9 @@ void percevite_vo_detect(const drone_data_t *robot1, const drone_data_t *robot2)
       positive_ctr = 0;
     }
   }
+  #ifdef DBG_VEL_OBS
+    printf("low: %d, high: %d\n", low, high);
+  #endif
   
   // 20 at 10 Hz = 2 seconds
   if (positive_ctr > 20) {
@@ -280,12 +284,11 @@ void percevite_vo_init(void) {
   percevite_requires_avoidance = false;
   printf("VO init done\n");
 
-  /*********** if mode == SIM ****************/
   #ifdef SIMMODE
-  drone2.pos.x = -10.0;
-  drone2.pos.y = -10.0;
-  drone2.vel.x = 0.12;
-  drone2.vel.y = 0.12;
+    drone2.pos.x = 40.0;
+    drone2.pos.y = -40.0;
+    drone2.vel.x = -1.2;
+    drone2.vel.y = 1.2;
   #endif
 }
 
@@ -325,11 +328,21 @@ void percevite_vo_periodic(void) {
   waypoint_set_alt(WP_AVOID, alt_from_p1);
 
   #ifdef DBG_VEL_OBS
-    printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
-          drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
-          drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
+    // printf("%f,%f,%f,%f,%f,%f,%f,%f\n", 
+    //       drone1.pos.x, drone1.pos.y, drone1.vel.x, drone1.vel.y,
+    //       drone2.pos.x, drone2.pos.y, drone2.vel.x, drone2.vel.y);
   #endif
   
   percevite_vo_detect(&drone1, &drone2);
 
 }
+
+/*
+LOWER ANGLE test:
+Obstacle moving from SW to NE
+Drone1 moving from NW to SE
+
+HIGHER ANGLE test:
+Obstacle moving from SE to NW
+Drone1 moving from NE to SW
+*/
