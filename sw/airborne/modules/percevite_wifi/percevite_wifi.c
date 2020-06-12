@@ -331,7 +331,7 @@ static void clear_drone_status(void) {
 
 void percevite_wifi_init() {
 
-	drone_data_f = fopen("drone_data.csv", "w+");
+	drone_data_f = fopen("/data/ftp/internal_000/paparazzi/drone_data.csv", "w+");
 	clear_drone_status();	
 	printf("-----------------Drone ID: [%d]-----------------\n", SELF_ID);
 
