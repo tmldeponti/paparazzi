@@ -66,7 +66,10 @@
     <!-- Geofence -->
     <exception cond="(!InsideFlight_Area(GetPosX(), GetPosY()) && !(nav_block == IndexOfBlock('flare')) && !(nav_block == IndexOfBlock('landed')) && !(nav_block == IndexOfBlock('land')) && !(nav_block == IndexOfBlock('HoldingPoint')) && !(nav_block == IndexOfBlock('WaitGPS')) && !(nav_block == IndexOfBlock('GeoInit')))" deroute="landHere"/>
 
-    <!-- Datalink loss -->
+    <!-- Datalink loss : Exception: for flight of 1 drone without WiFi: make sure the GeoFence is correct and then use:
+      !(IndexOfBlock('Line12') == nav_block) &&
+      !(IndexOfBlock('Line21') == nav_block) &&
+-->
     <exception cond="(datalink_time > 60 &&
       !(datalink_time > 120) &&
       !(IndexOfBlock('Takeoff') > nav_block) &&
