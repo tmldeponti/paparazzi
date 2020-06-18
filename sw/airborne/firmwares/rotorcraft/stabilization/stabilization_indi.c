@@ -48,6 +48,14 @@
 // Factor that the estimated G matrix is allowed to deviate from initial one
 #define INDI_ALLOWED_G_FACTOR 2.0
 
+struct FloatQuat att_err_f;
+struct FloatQuat att_ref_quat_f;
+struct Int32Quat att_err_log;
+struct Int32Quat att_err_i_log;
+struct Int32Rates rate_err_log;
+struct Int32Rates rate_ref_scaled_log;
+struct AttRefQuatInt att_ref_quat_i;
+
 float du_min[INDI_NUM_ACT];
 float du_max[INDI_NUM_ACT];
 float du_pref[INDI_NUM_ACT];
@@ -183,6 +191,24 @@ static void send_indi_g(struct transport_tx *trans, struct link_device *dev)
                        INDI_NUM_ACT, g2_est);
 }
 
+static void send_Quats(struct transport_tx *trans, struct link_device *dev)
+{
+  struct FloatQuat *quat = stateGetNedToBodyQuat_f();
+  QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
+  pprz_msg_send_Quats(trans, dev, AC_ID,
+					  &(quat->qi),
+                      &(quat->qx),
+                      &(quat->qy),
+                      &(quat->qz),
+					  &att_ref_quat_f.qi,//&att_ref_quat_i.rate.p,//
+					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
+                      &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
+                      &att_ref_quat_f.qz,
+					  &att_err_f.qx,
+					  &att_err_f.qy,
+					  &att_err_f.qz);
+}
+
 static void send_ahrs_ref_quat(struct transport_tx *trans, struct link_device *dev)
 {
   struct Int32Quat *quat = stateGetNedToBodyQuat_i();
@@ -240,6 +266,7 @@ void stabilization_indi_init(void)
 #if PERIODIC_TELEMETRY
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_INDI_G, send_indi_g);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AHRS_REF_QUAT, send_ahrs_ref_quat);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_Quats, send_Quats);
 #endif
 }
 
@@ -495,12 +522,23 @@ void stabilization_indi_run(bool in_flight, bool rate_control)
 
   /* attitude error                          */
   struct Int32Quat att_err;
+  struct Int32Quat att_err_i;
+  //struct FloatQuat att_ref_quat_f;
+  
+  struct FloatQuat *att_quat_f = stateGetNedToBodyQuat_f();
+  QUAT_FLOAT_OF_BFP(att_ref_quat_f, stab_att_sp_quat);
+  tilt_twist(&att_err_f, att_quat_f, &att_ref_quat_f);
+  QUAT_BFP_OF_REAL(att_err_i,att_err_f);
+  
   struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
   int32_quat_inv_comp(&att_err, att_quat, &stab_att_sp_quat);
   /* wrap it in the shortest direction       */
   int32_quat_wrap_shortest(&att_err);
   int32_quat_normalize(&att_err);
 
+  QUAT_COPY(att_err_log, att_err);
+  QUAT_COPY(att_err_i_log,att_err_i);
+  att_err.qz = 0.00001;
   /* compute the INDI command */
   stabilization_indi_calc_cmd(&att_err, rate_control, in_flight);
 

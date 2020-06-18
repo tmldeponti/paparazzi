@@ -137,8 +137,8 @@
     <define name="THETA_DGAIN" value="212"/>
     <define name="THETA_IGAIN" value="0"/>
 
-    <define name="PSI_PGAIN" value="4000"/>
-    <define name="PSI_DGAIN" value="350"/>
+    <define name="PSI_PGAIN" value="400"/>
+    <define name="PSI_DGAIN" value="35"/>
     <define name="PSI_IGAIN" value="0"/>
 
     <!-- feedforward -->
@@ -184,7 +184,7 @@
   <section name="AUTOPILOT">
     <define name="MODE_STARTUP" value="AP_MODE_NAV"/>
     <define name="MODE_MANUAL" value="AP_MODE_ATTITUDE_DIRECT"/>
-    <define name="MODE_AUTO1" value="AP_MODE_ATTITUDE_Z_HOLD"/>
+    <define name="MODE_AUTO1" value="AP_MODE_CARE_FREE_DIRECT"/>
     <define name="MODE_AUTO2" value="AP_MODE_NAV"/>
   </section>
 

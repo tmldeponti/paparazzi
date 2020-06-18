@@ -296,8 +296,8 @@ void stabilization_attitude_run(bool enable_integrator)
   struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
   int32_quat_inv_comp(&att_err_i, att_quat, &att_ref_quat_i.quat);
   /* wrap it in the shortest direction       */
-  //int32_quat_wrap_shortest(&att_err);
-  int32_quat_normalize(&att_err);
+  int32_quat_wrap_shortest(&att_err);
+  int32_quat_normalize(&att_err_i);
 
   QUAT_COPY(att_err_log, att_err);
   QUAT_COPY(att_err_i_log,att_err_i);

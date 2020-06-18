@@ -40,6 +40,14 @@
 extern struct Int32Quat   stab_att_sp_quat;  ///< with #INT32_QUAT_FRAC
 extern struct Int32Eulers stab_att_sp_euler; ///< with #INT32_ANGLE_FRAC
 
+extern struct AttRefQuatInt att_ref_quat_i;
+extern struct Int32Quat att_err_log;
+extern struct FloatQuat att_ref_quat_f;
+extern struct FloatQuat att_err_f;
+extern struct Int32Quat att_err_i_log;
+extern struct Int32Rates rate_err_log;
+extern struct Int32Rates rate_ref_scaled_log;
+
 struct ReferenceSystem {
   float err_p;
   float err_q;
@@ -77,6 +85,7 @@ struct IndiVariables {
   struct ReferenceSystem reference_acceleration;
 
   bool adaptive;             ///< Enable adataptive estimation
+  bool tilt_tw;
   float max_rate;            ///< Maximum rate in rate control in rad/s
   float attitude_max_yaw_rate; ///< Maximum yaw rate in atttiude control in rad/s
   struct IndiEstimation est; ///< Estimation parameters for adaptive INDI

@@ -758,8 +758,8 @@ void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, struct FloatQuat *
 	transpose_matrix(3, rot_cur_matrix , rot_cur_tran_matrix); //transpose the rotation matrix of the current attitude
 	matrix_multiplication(3,3,rot_des_matrix,3,3,rot_cur_tran_matrix,error_matrix); //give error matrix
 	//define tilt errors
-	double tilt_error_1 = atan2(error_matrix[1][2],error_matrix[1][1]);
-	double tilt_error_2 = -1 * atan2(error_matrix[0][2],error_matrix[0][0]);
+	double tilt_error_1 = -1 * atan2(error_matrix[2][1],error_matrix[2][2]);
+	double tilt_error_2 = atan2(error_matrix[2][0],error_matrix[2][2]);
 
 	float i_des[3] = {rot_des_matrix[2][0],rot_des_matrix[2][1],rot_des_matrix[2][2]};
 	float i_cur[3] = {rot_cur_matrix[2][0],rot_cur_matrix[2][1],rot_cur_matrix[2][2]};
@@ -808,7 +808,7 @@ void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, struct FloatQuat *
 		twist_error *= -1;
 	}
 	b2c->qi = 0;
-	b2c->qx = tilt_error_1;
-	b2c->qy = tilt_error_2;
-	b2c->qz = twist_error;
+	b2c->qx = tilt_error_1/2.2;
+	b2c->qy = tilt_error_2/2.2;
+	b2c->qz = twist_error/2.2;
 }
