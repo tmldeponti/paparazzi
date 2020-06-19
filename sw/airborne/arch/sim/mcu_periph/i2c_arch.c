@@ -64,3 +64,25 @@ void i2c2_hw_init(void)
 }
 
 #endif
+
+#if USE_I2C3
+struct i2c_errors i2c3_errors;
+
+void i2c3_hw_init(void)
+{
+  i2c3.errors = &i2c3_errors;
+  ZEROS_ERR_COUNTER(i2c3_errors);
+}
+
+#endif
+
+#if USE_I2C4
+struct i2c_errors i2c4_errors;
+
+void i2c4_hw_init(void)
+{
+  i2c4.errors = &i2c4_errors;
+  ZEROS_ERR_COUNTER(i2c4_errors);
+}
+
+#endif
