@@ -152,11 +152,11 @@ static void send_att_indi(struct transport_tx *trans, struct link_device *dev)
                                    &g2_disp);
 }
 
-static void send_Quats(struct transport_tx *trans, struct link_device *dev)
+static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 {
   struct FloatQuat *quat = stateGetNedToBodyQuat_f();
   QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
-  pprz_msg_send_Quats(trans, dev, AC_ID,
+  pprz_msg_send_QUATS(trans, dev, AC_ID,
 					  &(quat->qi),
                       &(quat->qx),
                       &(quat->qy),
@@ -193,7 +193,7 @@ void stabilization_indi_init(void)
 #if PERIODIC_TELEMETRY
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_INDI, send_att_indi);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AHRS_REF_QUAT, send_ahrs_ref_quat);
-  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_Quats, send_Quats);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_QUATS, send_QUATS);
 #endif
 }
 

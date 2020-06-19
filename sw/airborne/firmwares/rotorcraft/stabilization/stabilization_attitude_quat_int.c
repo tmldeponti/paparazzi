@@ -118,7 +118,7 @@ static void send_att(struct transport_tx *trans, struct link_device *dev)   //FI
                                   &stabilization_cmd[COMMAND_YAW]);
 }
 
-static void send_Quats(struct transport_tx *trans, struct link_device *dev)
+static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 {
   struct FloatQuat *quat = stateGetNedToBodyQuat_f();
   QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
@@ -183,7 +183,7 @@ void stabilization_attitude_init(void)
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_INT, send_att);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_STAB_ATTITUDE_REF_INT, send_att_ref);
   register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AHRS_REF_QUAT, send_ahrs_ref_quat);
-  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_Quats, send_Quats);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_QUATS, send_QUATS);
 #endif
 }
 

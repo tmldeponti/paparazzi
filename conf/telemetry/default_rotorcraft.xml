@@ -45,7 +45,7 @@
       <message name="ESC"                      period="0.5"/>
       <!--message name="WINDTUNNEL_MEAS"          period="0.1"/-->
       <message name="AHRS_REF_QUAT"            period="0.1"/>
-      <message name="Quats"                    period="0.02"/>
+      <message name="QUATS"                    period="0.02"/>
     </mode>
 
     <mode name="ppm">
@@ -59,11 +59,11 @@
       <message name="BEBOP_ACTUATORS"          period="0.2"/>
     </mode>
 
-    <mode name="Quats">
+    <mode name="QUATS">
       <message name="ROTORCRAFT_STATUS" period="1.2"/>
       <message name="DL_VALUE"          period="0.5"/>
       <message name="ALIVE"             period="2.1"/>
-      <message name="Quats"             period="0.02"/>
+      <message name="QUATS"             period="0.02"/>
     </mode>
 
 
