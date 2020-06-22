@@ -131,9 +131,12 @@ static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
                       &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
                       &att_ref_quat_f.qz,
-					  &att_err_f.qx,
-					  &att_err_f.qy,
-					  &att_err_f.qz);
+					  &att_err_i.qx,
+					  &att_err_i.qy,
+					  &att_err_i.qz,
+					  &att_err.qx,
+					  &att_err.qy,
+					  &att_err.qz);
 }
 		
 
