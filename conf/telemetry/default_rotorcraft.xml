@@ -228,6 +228,7 @@
       <message name="GUIDANCE_H_REF_INT"       period="0.02"/>
       <message name="HYBRID_GUIDANCE"          period="0.1"/>
       <message name="ESC"                      period="0.02"/>
+      <message name="QUATS"                    period="0.02"/>
       <!--<message name="WINDTUNNEL_MEAS"          period="0.005"/>-->
     </mode>
   </process>
