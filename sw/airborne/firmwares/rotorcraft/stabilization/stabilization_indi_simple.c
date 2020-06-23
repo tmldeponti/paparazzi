@@ -157,26 +157,14 @@ static void send_att_indi(struct transport_tx *trans, struct link_device *dev)
 static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 {
   struct FloatQuat *quat = stateGetNedToBodyQuat_f();
-  //QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
   pprz_msg_send_QUATS(trans, dev, AC_ID,
-					  /* &(quat->qi),
-                      &(quat->qx),
-                      &(quat->qy),
-                      &(quat->qz),
-					  &att_ref_quat_f.qi,//&att_ref_quat_i.rate.p,//
-					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
-                      &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
-                      &att_ref_quat_f.qz,
-					  &att_err_f.qx,
-					  &att_err_f.qy,
-					  &att_err_f.qz); */
 					  &(quat->qi),
                       &(quat->qx),
                       &(quat->qy),
                       &(quat->qz),
-					  &att_ref_quat_f.qi,//&att_ref_quat_i.rate.p,//
-					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
-                      &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
+					  &att_ref_quat_f.qi,
+					  &att_ref_quat_f.qx,
+                      &att_ref_quat_f.qy,
                       &att_ref_quat_f.qz,
 					  &att_err_i_log.qx,
 					  &att_err_i_log.qy,
@@ -463,7 +451,7 @@ void stabilization_indi_run(bool in_flight __attribute__((unused)), bool rate_co
 		int32_quat_wrap_shortest(&att_err);
 		int32_quat_normalize(&att_err_i);
 		switch_tilt_twist = true;
-		att_err.qz = 0.00000001;
+		//att_err.qz = 0.00000001;
   } else{
 		if (switch_tilt_twist){
 			stabilization_indi_enter();
@@ -475,7 +463,6 @@ void stabilization_indi_run(bool in_flight __attribute__((unused)), bool rate_co
 		/* wrap it in the shortest direction       */
 		int32_quat_wrap_shortest(&att_err);
 		int32_quat_normalize(&att_err);
-		att_err.qz = 0.00000001;
   }
   
   QUAT_COPY(att_err_log, att_err);
