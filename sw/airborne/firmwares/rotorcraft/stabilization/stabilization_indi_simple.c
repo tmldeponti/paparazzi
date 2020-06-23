@@ -74,6 +74,8 @@
 struct Int32Eulers stab_att_sp_euler;
 struct Int32Quat   stab_att_sp_quat;
 
+bool switch_tilt_twist;
+
 struct FloatQuat att_err_f;
 struct FloatQuat att_ref_quat_f;
 struct Int32Quat att_err_log;
@@ -155,8 +157,19 @@ static void send_att_indi(struct transport_tx *trans, struct link_device *dev)
 static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 {
   struct FloatQuat *quat = stateGetNedToBodyQuat_f();
-  QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
+  //QUAT_FLOAT_OF_BFP(att_ref_quat_f, att_ref_quat_i.quat);
   pprz_msg_send_QUATS(trans, dev, AC_ID,
+					  /* &(quat->qi),
+                      &(quat->qx),
+                      &(quat->qy),
+                      &(quat->qz),
+					  &att_ref_quat_f.qi,//&att_ref_quat_i.rate.p,//
+					  &att_ref_quat_f.qx,//&att_ref_quat_i.rate.q,//
+                      &att_ref_quat_f.qy,//&att_ref_quat_i.rate.r,//
+                      &att_ref_quat_f.qz,
+					  &att_err_f.qx,
+					  &att_err_f.qy,
+					  &att_err_f.qz); */
 					  &(quat->qi),
                       &(quat->qx),
                       &(quat->qy),
@@ -438,29 +451,31 @@ void stabilization_indi_run(bool in_flight __attribute__((unused)), bool rate_co
   /* attitude error                          */
   struct Int32Quat att_err;
   struct Int32Quat att_err_i;
+  struct FloatQuat *att_quat_f = stateGetNedToBodyQuat_f();
+  struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
+  QUAT_FLOAT_OF_BFP(att_ref_quat_f, stab_att_sp_quat);
+  tilt_twist(&att_err_f, att_quat_f, &att_ref_quat_f);
   if (indi.tilt_tw){
-		struct FloatQuat *att_quat_f = stateGetNedToBodyQuat_f();
-		QUAT_FLOAT_OF_BFP(att_ref_quat_f, stab_att_sp_quat);
-		tilt_twist(&att_err_f, att_quat_f, &att_ref_quat_f);
 		QUAT_BFP_OF_REAL(att_err,att_err_f);
   
-		struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
 		int32_quat_inv_comp(&att_err_i, att_quat, &stab_att_sp_quat);
 		/* wrap it in the shortest direction       */
 		int32_quat_wrap_shortest(&att_err);
 		int32_quat_normalize(&att_err_i);
-		att_err.qz = 0.00001;
+		switch_tilt_twist = true;
+		att_err.qz = 0.00000001;
   } else{
-		struct FloatQuat *att_quat_f = stateGetNedToBodyQuat_f();
-		QUAT_FLOAT_OF_BFP(att_ref_quat_f, stab_att_sp_quat);
-		tilt_twist(&att_err_f, att_quat_f, &att_ref_quat_f);
+		if (switch_tilt_twist){
+			stabilization_indi_enter();
+			switch_tilt_twist = false;
+		}
 		QUAT_BFP_OF_REAL(att_err_i,att_err_f);
   
-		struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
 		int32_quat_inv_comp(&att_err, att_quat, &stab_att_sp_quat);
 		/* wrap it in the shortest direction       */
 		int32_quat_wrap_shortest(&att_err);
 		int32_quat_normalize(&att_err);
+		att_err.qz = 0.00000001;
   }
   
   QUAT_COPY(att_err_log, att_err);
