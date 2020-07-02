@@ -487,7 +487,7 @@ extern void int32_quat_comp_inv(struct Int32Quat *a2b, struct Int32Quat *a2c, st
  */
 extern void int32_quat_inv_comp(struct Int32Quat *b2c, struct Int32Quat *a2b, struct Int32Quat *a2c);
 
-extern void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, struct FloatQuat *a2c);
+extern void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, float tilt, struct FloatQuat *a2c);
 /** Composition (multiplication) of two quaternions with normalization.
  * a2c = a2b comp b2c , aka  a2c = a2b * b2c
  */

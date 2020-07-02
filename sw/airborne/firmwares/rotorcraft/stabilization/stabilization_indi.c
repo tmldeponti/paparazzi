@@ -206,7 +206,7 @@ static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
                       &att_ref_quat_f.qz,
 					  &att_err_f.qx,
 					  &att_err_f.qy,
-					  &att_err_f.qz);
+					  &att_err_f.qz;
 }
 
 static void send_ahrs_ref_quat(struct transport_tx *trans, struct link_device *dev)
