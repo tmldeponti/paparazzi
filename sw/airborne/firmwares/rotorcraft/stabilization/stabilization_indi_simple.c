@@ -63,6 +63,10 @@
 #define TILT_TWIST_ANGLE_OFFSET 0
 #endif
 
+#ifndef THETA_CHANGE
+#define THETA_CHANGE 0
+#endif
+
 #if STABILIZATION_INDI_USE_ADAPTIVE
 #warning "Use caution with adaptive indi. See the wiki for more info"
 #endif
@@ -101,6 +105,7 @@ struct IndiVariables indi = {
   .max_rate = STABILIZATION_INDI_MAX_RATE,
   .tt_angle_offset = TILT_TWIST_ANGLE_OFFSET,
   .attitude_max_yaw_rate = STABILIZATION_INDI_MAX_R,
+  .theta_change = THETA_CHANGE,	
 
   .g1 = {STABILIZATION_INDI_G1_P, STABILIZATION_INDI_G1_Q, STABILIZATION_INDI_G1_R},
   .g2 = STABILIZATION_INDI_G2_R,
@@ -165,7 +170,7 @@ static void send_QUATS(struct transport_tx *trans, struct link_device *dev)
 {
   struct FloatQuat *quat = stateGetNedToBodyQuat_f();
   struct FloatEuler *att_eul = stateGetNedToBodyEulers_f();
-  int navvv_head = DegOfRad(ANGLE_FLOAT_OF_BFP(nav_heading));
+  int navvv_head = indi.theta_change;
   int tilt_deg = DegOfRad(att_eul->theta);
   pprz_msg_send_QUATS(trans, dev, AC_ID,
 					  &(quat->qi),
@@ -457,7 +462,8 @@ void stabilization_indi_run(bool in_flight __attribute__((unused)), bool rate_co
   struct Int32Quat *att_quat = stateGetNedToBodyQuat_i();
   struct FloatEuler *att_eul = stateGetNedToBodyEulers_f();
   QUAT_FLOAT_OF_BFP(att_ref_quat_f, stab_att_sp_quat);
-  tilt_twist(&att_err_f, att_quat_f, att_eul->theta, &att_ref_quat_f);
+  float theta_change_tt = RadOfDeg(indi.theta_change);
+  tilt_twist(&att_err_f, att_quat_f, att_eul->phi , att_eul->theta, theta_change_tt , &att_ref_quat_f);
   if (indi.tilt_tw){
 		QUAT_BFP_OF_REAL(att_err,att_err_f);
   
@@ -481,7 +487,6 @@ void stabilization_indi_run(bool in_flight __attribute__((unused)), bool rate_co
 		int32_quat_normalize(&att_err);
 		tilt_twist_on = 0;
   }
-  
   QUAT_COPY(att_err_log, att_err);
   QUAT_COPY(att_err_i_log,att_err_i);
   

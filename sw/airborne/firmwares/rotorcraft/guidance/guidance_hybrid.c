@@ -36,6 +36,7 @@
 #include "firmwares/rotorcraft/guidance/guidance_h.h"
 #include "subsystems/radio_control.h"
 #include "firmwares/rotorcraft/stabilization/stabilization_attitude.h"
+#include "firmwares/rotorcraft/stabilization/stabilization_indi_simple.h"
 
 /* for guidance_v_thrust_coeff */
 #include "firmwares/rotorcraft/guidance/guidance_v.h"
@@ -56,6 +57,7 @@ int32_t wind_gain;
 int32_t horizontal_speed_gain;
 float max_turn_bank;
 float turn_bank_gain;
+int32_t heading_offset;
 
 #define AIRSPEED_HOVER          4
 #define AIRSPEED_FORWARD        12
@@ -100,6 +102,7 @@ static void send_hybrid_guidance(struct transport_tx *trans, struct link_device 
 {
   struct NedCoor_i *pos = stateGetPositionNed_i();
   struct NedCoor_i *speed = stateGetSpeedNed_i();
+  int32_t testttt = ANGLE_BFP_OF_REAL(RadOfDeg(heading_offset));
   pprz_msg_send_HYBRID_GUIDANCE(trans, dev, AC_ID,
                                 &(pos->x), &(pos->y),
                                 &(speed->x), &(speed->y),
@@ -111,7 +114,7 @@ static void send_hybrid_guidance(struct transport_tx *trans, struct link_device 
                                 &guidance_hybrid_norm_ref_airspeed,
                                 &heading_diff_disp,
                                 &guidance_hybrid_ypr_sp.phi,
-                                &guidance_hybrid_ypr_sp.theta,
+                                &testttt,//guidance_hybrid_ypr_sp.theta,
                                 &guidance_hybrid_ypr_sp.psi);
 }
 
@@ -268,7 +271,7 @@ void guidance_hybrid_airspeed_to_attitude(struct Int32Eulers *ypr_sp)
       if (omega < ANGLE_BFP_OF_REAL(-0.7)) { omega = ANGLE_BFP_OF_REAL(-0.7); }
     }
   }
-
+  
   //only for debugging purposes
   omega_disp = omega;
 
@@ -279,6 +282,7 @@ void guidance_hybrid_airspeed_to_attitude(struct Int32Eulers *ypr_sp)
 
   // go back to angle_frac
   ypr_sp->psi = high_res_psi >> (INT32_ANGLE_HIGH_RES_FRAC - INT32_ANGLE_FRAC);
+  ypr_sp->psi += ANGLE_BFP_OF_REAL(RadOfDeg(heading_offset));
   ypr_sp->theta = ypr_sp->theta + v_control_pitch;
 }
 

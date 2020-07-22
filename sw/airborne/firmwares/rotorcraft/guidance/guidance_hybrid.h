@@ -38,6 +38,7 @@ extern int32_t wind_gain;
 extern int32_t horizontal_speed_gain;
 extern float max_turn_bank;
 extern float turn_bank_gain;
+extern int32_t heading_offset;
 
 extern int32_t cruise_throttle;
 extern int32_t fwd_speed_p_gain;

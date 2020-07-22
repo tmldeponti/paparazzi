@@ -95,6 +95,7 @@ struct IndiVariables {
   float tt_angle_offset;
   float max_rate;            ///< Maximum rate in rate control in rad/s
   float attitude_max_yaw_rate; ///< Maximum yaw rate in atttiude control in rad/s
+  float theta_change;
   struct IndiEstimation est; ///< Estimation parameters for adaptive INDI
 };
 
