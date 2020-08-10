@@ -721,10 +721,16 @@ float norm(int N,float vector[N])
 void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, float phi_tt, float theta_tt, float theta_change, struct FloatQuat *a2c)
 {
 	if (theta_change < 0.01){
-		theta_tt *= -1;
-		phi_tt *= -1;
+		if (theta_tt < -1.30899694){
+			theta_tt = 1.57079633;
+			phi_tt = 0;
+		}
+		else{
+			theta_tt *= -1;
+			phi_tt *= -1;
+		}
 	}
-	else if(theta_tt<theta_change && theta_tt>-theta_change ) 
+	else if(theta_tt<theta_change && theta_tt>-theta_change) 
 	{
 		theta_tt =0;
 		phi_tt =0;
@@ -766,7 +772,8 @@ void tilt_twist(struct FloatQuat *b2c, struct FloatQuat *a2b, float phi_tt, floa
 		{2 * ( qx_cur * qz_cur + qy_cur * qi_cur) , 2 * ( qy_cur * qz_cur - qx_cur * qi_cur) , qi_cur * qi_cur - qx_cur * qx_cur - qy_cur * qy_cur + qz_cur * qz_cur},
 	};
 	
-	float rot_des_matrix[3][3]; float rot_cur_matrix[3][3];
+	float rot_des_matrix[3][3]; 
+	float rot_cur_matrix[3][3];
 	float rot_matrix_theta [3][3] = {{cos(theta_tt),sin(theta_tt)*sin(phi_tt),sin(theta_tt)*cos(phi_tt)},{0,cos(phi_tt),-sin(phi_tt)},{-sin(theta_tt), cos(theta_tt)*sin(phi_tt) , cos(theta_tt)*cos(phi_tt)}};
 	matrix_multiplication(3,3,rot_matrix_theta,3,rot_des_matrix_1,rot_des_matrix);
 	matrix_multiplication(3,3,rot_matrix_theta,3,rot_cur_matrix_1,rot_cur_matrix);
