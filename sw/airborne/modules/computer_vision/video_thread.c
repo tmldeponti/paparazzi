@@ -151,6 +151,10 @@ static void *video_thread_function(void *data)
     // Free the image
     v4l2_image_free(vid->thread.dev, &img);
 
+    uint32_t time_end = get_sys_time_usec();
+    uint32_t time_dt = time_end - time_begin;
+    fprintf(stdout, "[%s] vision = %i us, vid_fps=%i current fps=%f\n ",print_tag, time_dt, vid->fps, 1000000.f / frame_dt_us);
+
     // sleep (most of the) remaining time to limit to specified fps
     if (vid->fps > 0) {
       uint32_t fps_period_us = 1000000 / vid->fps;
