@@ -72,7 +72,7 @@
       !(IndexOfBlock('Holding point') > nav_block) &&
       !(nav_block >= IndexOfBlock('land here')) &&
       (autopilot_in_flight() == true) )" deroute="land here"/> -->
-    <exception cond="Or(!InsideFlyzone(GetPosX(), GetPosY()), GetPosAlt() > 3.5) && !(nav_block == IndexOfBlock('Wait GPS')) && !(nav_block == IndexOfBlock('Geo init'))" deroute="safe"/>
+    <exception cond="Or(!InsideFlyzone(GetPosX(), GetPosY()), GetPosAlt() > 2.2) && !(nav_block == IndexOfBlock('Wait GPS')) && !(nav_block == IndexOfBlock('Geo init'))" deroute="safe"/>
     <!-- && !(nav_block == IndexOfBlock('Holding point')) -->
   </exceptions>
   <blocks>
