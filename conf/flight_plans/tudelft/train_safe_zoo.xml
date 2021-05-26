@@ -49,7 +49,7 @@
     </sector>
   </sectors>
   <exceptions>
-    <exception cond="((datalink_time > 5) &&
+    <!-- <exception cond="((datalink_time > 5) &&
       !(IndexOfBlock('Holding point') > nav_block) &&
       !(nav_block >= IndexOfBlock('land here')) &&
       (autopilot_in_flight() == true) )" deroute="land here"/>
@@ -71,8 +71,9 @@
     <exception cond="(electrical.bat_critical &&
       !(IndexOfBlock('Holding point') > nav_block) &&
       !(nav_block >= IndexOfBlock('land here')) &&
-      (autopilot_in_flight() == true) )" deroute="land here"/>
-    <exception cond="Or(!InsideFlyzone(GetPosX(), GetPosY()), GetPosAlt() > GetAltRef() + 1500) && !(nav_block == IndexOfBlock('Wait GPS')) && !(nav_block == IndexOfBlock('Geo init')) && !(nav_block == IndexOfBlock('Holding point'))" deroute="safe"/>
+      (autopilot_in_flight() == true) )" deroute="land here"/> -->
+    <exception cond="Or(!InsideFlyzone(GetPosX(), GetPosY()), GetPosAlt() > 3.5) && !(nav_block == IndexOfBlock('Wait GPS')) && !(nav_block == IndexOfBlock('Geo init'))" deroute="safe"/>
+    <!-- && !(nav_block == IndexOfBlock('Holding point')) -->
   </exceptions>
   <blocks>
     <block name="Wait GPS">
@@ -99,7 +100,9 @@
     </block>
     <block name="safe">
       <set value="AP_MODE_NAV" var="autopilot_mode_auto2"/>
-      <stay wp="STDBY"/>
+      <go wp="STDBY"/>
+      <call_once fun="NavSetWaypointHere(WP_TD)"/>
+      <deroute block="Pit Stop"/> 
     </block>
     <block key="s" name="Standby" strip_button="Standby" strip_icon="home.png">
       <call_once fun="NavSetWaypointHere(WP_STDBY)"/>
@@ -128,6 +131,16 @@
       <exception cond="0.10 > GetPosAlt()" deroute="Landed"/>
       <call_once fun="NavStartDetectGround()"/>
       <stay climb="nav_descend_vspeed" vmode="climb" wp="TD"/>
+    </block>
+    <block name="Pit Stop">
+      <exception cond="!nav_is_in_flight()" deroute="Sbinnala"/>
+      <exception cond="0.10 > GetPosAlt()" deroute="Sbinnala"/>
+      <call_once fun="NavStartDetectGround()"/>
+      <stay climb="nav_descend_vspeed" vmode="climb" wp="TD"/>
+      <!-- <exception cond="NavDetectGround()" deroute="Holding point"/> -->
+    </block>
+    <block name="Sbinnala">
+      <set value="AP_MODE_ATTITUDE_DIRECT" var="autopilot_mode_auto2"/>
     </block>
     <block name="Landed">
       <call_once fun="NavKillThrottle()"/>
