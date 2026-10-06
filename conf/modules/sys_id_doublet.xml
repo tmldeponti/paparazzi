@@ -27,7 +27,10 @@
         <section name="SYS_ID" prefix="SYS_ID_">
           <define name="DOUBLET_AXES"        value="{COMMAND_ROLL,COMMAND_PITCH,COMMAND_YAW}" description="Which axes the doublet is applied to (specify as array with {})"/>
           <define name="DOUBLET_ENABLED"     value="TRUE|FALSE"  description="If false, the doublet does not run and values are not added"/>
-          <define name="DOUBLET_MOD"         value="0"  description="0= normal, 1=half, 2=the 3-2-1-1 doublet"/>
+          <define name="DOUBLET_MOD"         value="0"  description="0= normal, 1=half, 2=the 3-2-1-1 doublet, 3=highspeed (one doublet, no waiting time)"/>
+          <define name="MULTI_DOUBLET"                  value="TRUE|FALSE" description="Apply the doublet to several axes at once, using SYS_ID_MULTI_DOUBLET_COMBINATIONS (default FALSE)"/>
+          <define name="MULTI_DOUBLET_NUM_COMBINATIONS" value="2" description="Number of axis combinations, the doublet axis setting then selects a combination"/>
+          <define name="MULTI_DOUBLET_COMBINATIONS"     value="{{1,0,1,0},{0,1,0,1}}" description="Per combination, 1 for each axis of SYS_ID_DOUBLET_AXES that gets the doublet"/>
         </section>
     </doc>
 

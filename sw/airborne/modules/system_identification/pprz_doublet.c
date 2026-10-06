@@ -55,7 +55,7 @@ void doublet_init(struct doublet_t *doublet, float length_s, float extra_waiting
         doublet->t3 = doublet->t1 * 6;
         doublet->t4 = doublet->t1 * 7;
         doublet->t5 = doublet->t1 * 8;
-    } else if (mod==3) { // highspeed doublet 
+    } else if (mod==3) { // highspeed doublet: one doublet, no waiting time
         doublet->t1 = 0;
         doublet->t2 = length_s / 2;
         doublet->t3 = doublet->tf;

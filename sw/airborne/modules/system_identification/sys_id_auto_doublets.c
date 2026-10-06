@@ -42,14 +42,11 @@
 #endif
 
 #ifndef SYS_ID_AUTO_DOUBLETS_AMPLITUDE
-//int16_t sys_id_auto_doublets_amplitude = 1000;
 #error No doublet actuators SYS_ID_AUTO_DOUBLETS_AMPLITUDE defined
-//#else
-//int16_t sys_id_auto_doublets_amplitude = SYS_ID_AUTO_DOUBLETS_AMPLITUDE;
 #endif
 
 #ifndef SYS_ID_AUTO_DOUBLETS_TIME
-#define SYS_ID_AUTO_DOUBLETS_TIME 0.25
+#define SYS_ID_AUTO_DOUBLETS_TIME 0.5
 #endif
 
 #ifndef SYS_ID_AUTO_DOUBLETS_INTERVAL
@@ -61,9 +58,8 @@
 #endif
 
 uint8_t sys_id_auto_doublets_actuators[SYS_ID_AUTO_DOUBLETS_N_ACTUATORS] = SYS_ID_AUTO_DOUBLETS_ACTUATORS;
-int16_t sys_id_auto_doublets_amplitude_array[SYS_ID_AUTO_DOUBLETS_N_ACTUATORS] = SYS_ID_AUTO_DOUBLETS_AMPLITUDE;
-int16_t sys_id_auto_doublets_amplitude_roll  = 100;
-int16_t sys_id_auto_doublets_amplitude_pitch = 100;
+int16_t sys_id_auto_doublets_amplitude[SYS_ID_AUTO_DOUBLETS_N_ACTUATORS] = SYS_ID_AUTO_DOUBLETS_AMPLITUDE;
+
 float sys_id_auto_doublets_time = SYS_ID_AUTO_DOUBLETS_TIME;              // time of one doublet
 float sys_id_auto_doublets_interval_time = SYS_ID_AUTO_DOUBLETS_INTERVAL; // time interval for doublets
 int8_t sys_id_auto_doublets_n_repeat = SYS_ID_AUTO_DOUBLETS_REPEATS;      // The number of times a doublet has to be repeated on a single actuator
@@ -128,21 +124,13 @@ void perform_sys_id_auto_doublets(uint8_t actuator_index)
     return;
   }
   // Set correct settings
-  sys_id_doublet_mod_handler(3);
+#ifdef SYS_ID_AUTO_DOUBLETS_MOD
+  // Optional: force the doublet mode of the automatic doublets (e.g. 3 = highspeed)
+  sys_id_doublet_mod_handler(SYS_ID_AUTO_DOUBLETS_MOD);
+#endif
   sys_id_doublet_axis_handler(sys_id_auto_doublets_actuators[actuator_index]);
   doublet_length_s = sys_id_auto_doublets_time;
-  switch (actuator_index){
-    case 0:
-    case 2:
-      doublet_amplitude = sys_id_auto_doublets_amplitude_pitch;
-      break;
-    case 1:
-    case 3:
-      doublet_amplitude = sys_id_auto_doublets_amplitude_roll;
-      break;
-  }
- 
-  //doublet_amplitude = sys_id_auto_doublets_amplitude_array[actuator_index];
+  doublet_amplitude = sys_id_auto_doublets_amplitude[actuator_index];
 
   // call doublet activation handler
   sys_id_doublet_activate_handler(1);

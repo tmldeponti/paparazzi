@@ -87,8 +87,6 @@ static const int8_t multi_doublet_combinations[SYS_ID_MULTI_DOUBLET_NUM_COMBINAT
 #define SYS_ID_MAX_AXIS SYS_ID_DOUBLET_NB_AXES
 #endif
 
-//#define SYS_ID_MAX_AXIS (SYS_ID_MULTI_DOUBLET ? SYS_ID_MULTI_DOUBLET_NUM_COMBINATIONS : SYS_ID_DOUBLET_NB_AXES)
-
 static pprz_t current_doublet_values[SYS_ID_DOUBLET_NB_AXES];
 
 static void set_current_doublet_values(void)
@@ -101,10 +99,10 @@ static void set_current_doublet_values(void)
             } else {
                 current_doublet_values[i] = 0;
             }
-        }        
+        }
 #else
         current_doublet_values[doublet_axis] = (int32_t)(doublet_amplitude * doublet.current_value);
-#endif                
+#endif
     } else {
         for (uint8_t i = 0; i < SYS_ID_DOUBLET_NB_AXES; i++) {
             current_doublet_values[i] = 0;
