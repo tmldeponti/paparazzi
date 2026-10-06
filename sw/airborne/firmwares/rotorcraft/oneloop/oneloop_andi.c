@@ -1182,41 +1182,8 @@ static float ec_poles(float p_rm, float slow_pole, float k)
   p_rm = positive_non_zero(p_rm);
   slow_pole = positive_non_zero(slow_pole);
   k = positive_non_zero(k);
-  // float omega_n = (2*p_rm*slow_pole*k)/(3*slow_pole-p_rm);
   float omega_n = (2 * k * p_rm * slow_pole) / (3 * slow_pole - k * p_rm);
   return omega_n;
-}
-
-/**
- * @brief Calculate EC poles given RM poles
- * @param p_rm      Reference Model Pole (3 coincident poles)
- * @param slow_pole Pole of the slowest dynamics
- * @param k         EC / RM ratio
- * @param omega_n   Natural Frequency
- */
-static float ec_poles(float p_rm, float slow_pole, float k){
-  p_rm      = positive_non_zero(p_rm);
-  slow_pole = positive_non_zero(slow_pole);
-  k         = positive_non_zero(k);
-  float omega_n = (2*p_rm*slow_pole*k)/(3*slow_pole-p_rm);
-  return omega_n;
-}
-
-/**
- * @brief Initialize Position of Poles
- * 
- */
-void init_poles_att(void){
-  float slow_pole  = 22.0; // Pole of the slowest dynamics used in the attitude controller
-  p_att_e.omega_n  = ec_poles(p_att_rm.omega_n,  slow_pole, 1.28);
-  p_head_e.omega_n = ec_poles(p_head_rm.omega_n, slow_pole, 1.28);
-}
-void init_poles_pos(void){
-  act_dynamics[COMMAND_ROLL]  = w_approx(p_att_rm.p3, p_att_rm.p3, p_att_rm.p3, 1.0);
-  act_dynamics[COMMAND_PITCH] = w_approx(p_att_rm.p3, p_att_rm.p3, p_att_rm.p3, 1.0);
-  float slow_pole = act_dynamics[COMMAND_ROLL]; // Pole of the slowest dynamics used in the position controller
-  p_pos_e.omega_n = ec_poles(p_pos_rm.omega_n,slow_pole,1.28);//1.0;
-  p_alt_e.omega_n = ec_poles(p_alt_rm.omega_n,slow_pole,1.28);//1.0;// 3.0;
 }
 
 /**
