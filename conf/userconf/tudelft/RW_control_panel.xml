@@ -56,6 +56,15 @@
     </program>
   </section>
   <section name="sessions">
+    <session name="USB telemetry (Cube ttyACM0)">
+      <program name="Data Link">
+        <arg flag="-d" constant="/dev/ttyACM0"/>
+      </program>
+      <program name="Server"/>
+      <program name="Messages"/>
+      <program name="PprzGCS"/>
+    </session>
+
     <session name="Accelo only Debug Graphs">
       <program name="Real-time Plotter">
         <arg flag="-t" constant="'Accel"/>

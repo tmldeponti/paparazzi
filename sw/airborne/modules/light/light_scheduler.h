@@ -30,6 +30,19 @@
 #ifndef LIGHT_SCHEDULER_H
 #define LIGHT_SCHEDULER_H
 
+#include "std.h"
+
+/** Light modes */
+#define LIGHT_SCHEDULER_MODE_RAINBOW 0
+#define LIGHT_SCHEDULER_MODE_COLOR   1
+#define LIGHT_SCHEDULER_MODE_OFF     2
+
+extern uint8_t light_scheduler_mode;       ///< one of LIGHT_SCHEDULER_MODE_*
+extern uint8_t light_scheduler_red;        ///< red value in color mode
+extern uint8_t light_scheduler_green;      ///< green value in color mode
+extern uint8_t light_scheduler_blue;       ///< blue value in color mode
+extern uint8_t light_scheduler_brightness; ///< brightness scaling (255 = full)
+
 extern void light_scheduler_init(void);
 extern void light_scheduler_periodic(void);
 
