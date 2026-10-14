@@ -43,7 +43,27 @@ extern uint8_t light_scheduler_green;      ///< green value in color mode
 extern uint8_t light_scheduler_blue;       ///< blue value in color mode
 extern uint8_t light_scheduler_brightness; ///< brightness scaling (255 = full)
 
+/** Color presets, order must match the values of the color setting */
+enum light_scheduler_color_t {
+  LIGHT_SCHEDULER_COLOR_CUSTOM,
+  LIGHT_SCHEDULER_COLOR_RED,
+  LIGHT_SCHEDULER_COLOR_GREEN,
+  LIGHT_SCHEDULER_COLOR_BLUE,
+  LIGHT_SCHEDULER_COLOR_WHITE,
+  LIGHT_SCHEDULER_COLOR_YELLOW,
+  LIGHT_SCHEDULER_COLOR_ORANGE,
+  LIGHT_SCHEDULER_COLOR_CYAN,
+  LIGHT_SCHEDULER_COLOR_MAGENTA,
+  LIGHT_SCHEDULER_COLOR_PURPLE,
+  LIGHT_SCHEDULER_COLOR_NB
+};
+
+extern uint8_t light_scheduler_color;      ///< selected preset (light_scheduler_color_t)
+
 extern void light_scheduler_init(void);
 extern void light_scheduler_periodic(void);
+
+/** Settings handler: apply a color preset to red/green/blue and switch to color mode */
+extern void light_scheduler_set_color(uint8_t color);
 
 #endif /* LIGHT_SCHEDULER_H */

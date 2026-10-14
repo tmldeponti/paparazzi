@@ -29,6 +29,12 @@
 
 #include "modules/light/light_scheduler.h"
 #include "modules/light/light_ws2812_arch.h"
+#include "generated/airframe.h"
+
+/** Optional header needed by the alert condition */
+#ifdef LIGHT_SCHEDULER_ALERT_HEADER
+#include LIGHT_SCHEDULER_ALERT_HEADER
+#endif
 
 #ifndef LIGHT_SCHEDULER_MODE
 #define LIGHT_SCHEDULER_MODE LIGHT_SCHEDULER_MODE_RAINBOW
@@ -50,11 +56,36 @@
 #define LIGHT_SCHEDULER_BRIGHTNESS 255
 #endif
 
+/** Startup color preset, overrides LIGHT_SCHEDULER_RED/GREEN/BLUE when not custom */
+#ifndef LIGHT_SCHEDULER_COLOR
+#define LIGHT_SCHEDULER_COLOR LIGHT_SCHEDULER_COLOR_CUSTOM
+#endif
+
+/** Alert color, shown in every mode while LIGHT_SCHEDULER_ALERT is true */
+#ifndef LIGHT_SCHEDULER_ALERT_COLOR
+#define LIGHT_SCHEDULER_ALERT_COLOR LIGHT_SCHEDULER_COLOR_RED
+#endif
+
 uint8_t light_scheduler_mode = LIGHT_SCHEDULER_MODE;
 uint8_t light_scheduler_red = LIGHT_SCHEDULER_RED;
 uint8_t light_scheduler_green = LIGHT_SCHEDULER_GREEN;
 uint8_t light_scheduler_blue = LIGHT_SCHEDULER_BLUE;
 uint8_t light_scheduler_brightness = LIGHT_SCHEDULER_BRIGHTNESS;
+uint8_t light_scheduler_color = LIGHT_SCHEDULER_COLOR;
+
+/** RGB values of the color presets */
+static const uint8_t light_scheduler_presets[LIGHT_SCHEDULER_COLOR_NB][3] = {
+  [LIGHT_SCHEDULER_COLOR_CUSTOM]  = {255, 255, 255},
+  [LIGHT_SCHEDULER_COLOR_RED]     = {255,   0,   0},
+  [LIGHT_SCHEDULER_COLOR_GREEN]   = {  0, 255,   0},
+  [LIGHT_SCHEDULER_COLOR_BLUE]    = {  0,   0, 255},
+  [LIGHT_SCHEDULER_COLOR_WHITE]   = {255, 255, 255},
+  [LIGHT_SCHEDULER_COLOR_YELLOW]  = {255, 180,   0},
+  [LIGHT_SCHEDULER_COLOR_ORANGE]  = {255,  60,   0},
+  [LIGHT_SCHEDULER_COLOR_CYAN]    = {  0, 255, 255},
+  [LIGHT_SCHEDULER_COLOR_MAGENTA] = {255,   0, 255},
+  [LIGHT_SCHEDULER_COLOR_PURPLE]  = {128,   0, 255},
+};
 
 static uint32_t s = 0;
 
@@ -65,14 +96,40 @@ static void light_scheduler_set(uint32_t n, uint8_t r, uint8_t g, uint8_t b)
   light_ws2812_arch_set(n, (r * k) / 255, (g * k) / 255, (b * k) / 255);
 }
 
+void light_scheduler_set_color(uint8_t color)
+{
+  light_scheduler_color = color;
+  if (color != LIGHT_SCHEDULER_COLOR_CUSTOM && color < LIGHT_SCHEDULER_COLOR_NB) {
+    light_scheduler_red = light_scheduler_presets[color][0];
+    light_scheduler_green = light_scheduler_presets[color][1];
+    light_scheduler_blue = light_scheduler_presets[color][2];
+    light_scheduler_mode = LIGHT_SCHEDULER_MODE_COLOR;
+  }
+}
+
 void light_scheduler_init(void)
 {
+  if (light_scheduler_color != LIGHT_SCHEDULER_COLOR_CUSTOM) {
+    uint8_t mode = light_scheduler_mode;
+    light_scheduler_set_color(light_scheduler_color);
+    light_scheduler_mode = mode;
+  }
   light_ws2812_arch_init();
 }
 
 void light_scheduler_periodic(void)
 {
   uint32_t n, s0;
+#ifdef LIGHT_SCHEDULER_ALERT
+  if (LIGHT_SCHEDULER_ALERT) {
+    const uint8_t *c = light_scheduler_presets[LIGHT_SCHEDULER_ALERT_COLOR];
+    for (n = 0; n < WS2812_NB_LEDS; n++) {
+      light_scheduler_set(n, c[0], c[1], c[2]);
+    }
+    return;
+  }
+#endif
+
   for (n = 0; n < WS2812_NB_LEDS; n++) {
     if (light_scheduler_mode == LIGHT_SCHEDULER_MODE_COLOR) {
       light_scheduler_set(n, light_scheduler_red, light_scheduler_green, light_scheduler_blue);
