@@ -25,7 +25,7 @@
     <dl_settings>
       <dl_settings name="Light">
         <dl_setting var="light_scheduler_mode" min="0" max="2" step="1" values="Rainbow|Color|Off" shortname="mode" type="uint8_t"/>
-        <dl_setting var="light_scheduler_color" min="0" max="9" step="1" values="Custom|Red|Green|Blue|White|Yellow|Orange|Cyan|Magenta|Purple" shortname="color" type="uint8_t" module="light/light_scheduler" handler="set_color"/>
+        <dl_setting var="light_scheduler_color" min="0" max="12" step="1" values="Custom|Red|Green|Blue|White|Yellow|Orange|Cyan|Magenta|Purple|Italy|Netherlands|France" shortname="color" type="uint8_t" module="light/light_scheduler" handler="set_color"/>
         <dl_setting var="light_scheduler_red" min="0" max="255" step="1" shortname="red" type="uint8_t"/>
         <dl_setting var="light_scheduler_green" min="0" max="255" step="1" shortname="green" type="uint8_t"/>
         <dl_setting var="light_scheduler_blue" min="0" max="255" step="1" shortname="blue" type="uint8_t"/>

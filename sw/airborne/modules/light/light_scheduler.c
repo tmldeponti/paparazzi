@@ -73,8 +73,8 @@ uint8_t light_scheduler_blue = LIGHT_SCHEDULER_BLUE;
 uint8_t light_scheduler_brightness = LIGHT_SCHEDULER_BRIGHTNESS;
 uint8_t light_scheduler_color = LIGHT_SCHEDULER_COLOR;
 
-/** RGB values of the color presets */
-static const uint8_t light_scheduler_presets[LIGHT_SCHEDULER_COLOR_NB][3] = {
+/** RGB values of the single color presets */
+static const uint8_t light_scheduler_presets[LIGHT_SCHEDULER_COLOR_FLAG_FIRST][3] = {
   [LIGHT_SCHEDULER_COLOR_CUSTOM]  = {255, 255, 255},
   [LIGHT_SCHEDULER_COLOR_RED]     = {255,   0,   0},
   [LIGHT_SCHEDULER_COLOR_GREEN]   = {  0, 255,   0},
@@ -85,6 +85,16 @@ static const uint8_t light_scheduler_presets[LIGHT_SCHEDULER_COLOR_NB][3] = {
   [LIGHT_SCHEDULER_COLOR_CYAN]    = {  0, 255, 255},
   [LIGHT_SCHEDULER_COLOR_MAGENTA] = {255,   0, 255},
   [LIGHT_SCHEDULER_COLOR_PURPLE]  = {128,   0, 255},
+};
+
+/** Flags: three color presets, from the first to the last led of a strip */
+static const uint8_t light_scheduler_flags[LIGHT_SCHEDULER_COLOR_NB - LIGHT_SCHEDULER_COLOR_FLAG_FIRST][3] = {
+  [LIGHT_SCHEDULER_COLOR_FLAG_ITALY - LIGHT_SCHEDULER_COLOR_FLAG_FIRST] =
+    {LIGHT_SCHEDULER_COLOR_RED, LIGHT_SCHEDULER_COLOR_WHITE, LIGHT_SCHEDULER_COLOR_GREEN},
+  [LIGHT_SCHEDULER_COLOR_FLAG_NETHERLANDS - LIGHT_SCHEDULER_COLOR_FLAG_FIRST] =
+    {LIGHT_SCHEDULER_COLOR_RED, LIGHT_SCHEDULER_COLOR_WHITE, LIGHT_SCHEDULER_COLOR_BLUE},
+  [LIGHT_SCHEDULER_COLOR_FLAG_FRANCE - LIGHT_SCHEDULER_COLOR_FLAG_FIRST] =
+    {LIGHT_SCHEDULER_COLOR_BLUE, LIGHT_SCHEDULER_COLOR_WHITE, LIGHT_SCHEDULER_COLOR_RED},
 };
 
 static uint32_t s = 0;
@@ -99,7 +109,9 @@ static void light_scheduler_set(uint32_t n, uint8_t r, uint8_t g, uint8_t b)
 void light_scheduler_set_color(uint8_t color)
 {
   light_scheduler_color = color;
-  if (color != LIGHT_SCHEDULER_COLOR_CUSTOM && color < LIGHT_SCHEDULER_COLOR_NB) {
+  if (color >= LIGHT_SCHEDULER_COLOR_FLAG_FIRST && color < LIGHT_SCHEDULER_COLOR_NB) {
+    light_scheduler_mode = LIGHT_SCHEDULER_MODE_COLOR;
+  } else if (color != LIGHT_SCHEDULER_COLOR_CUSTOM && color < LIGHT_SCHEDULER_COLOR_FLAG_FIRST) {
     light_scheduler_red = light_scheduler_presets[color][0];
     light_scheduler_green = light_scheduler_presets[color][1];
     light_scheduler_blue = light_scheduler_presets[color][2];
@@ -131,7 +143,13 @@ void light_scheduler_periodic(void)
 #endif
 
   for (n = 0; n < WS2812_NB_LEDS; n++) {
-    if (light_scheduler_mode == LIGHT_SCHEDULER_MODE_COLOR) {
+    if (light_scheduler_mode == LIGHT_SCHEDULER_MODE_COLOR &&
+        light_scheduler_color >= LIGHT_SCHEDULER_COLOR_FLAG_FIRST && light_scheduler_color < LIGHT_SCHEDULER_COLOR_NB) {
+      // flag: three equal bands, led n is in the band containing its center (5 leds: 2 | 1 | 2)
+      uint32_t band = ((2 * n + 1) * 3) / (2 * WS2812_NB_LEDS);
+      const uint8_t *c = light_scheduler_presets[light_scheduler_flags[light_scheduler_color - LIGHT_SCHEDULER_COLOR_FLAG_FIRST][band]];
+      light_scheduler_set(n, c[0], c[1], c[2]);
+    } else if (light_scheduler_mode == LIGHT_SCHEDULER_MODE_COLOR) {
       light_scheduler_set(n, light_scheduler_red, light_scheduler_green, light_scheduler_blue);
     } else if (light_scheduler_mode == LIGHT_SCHEDULER_MODE_OFF) {
       light_ws2812_arch_set(n, 0, 0, 0);
