@@ -24,6 +24,8 @@
                 <configure name="WS2812_TIM" value="TIM4"/>
                 <define name="WS2812_NB_LEDS" value="5"/>
             </module>
+            <!-- Piezo buzzer on the carrier board USB port, tune at startup -->
+            <module name="buzzer_tunes"/>
             <!-- TIM4 is used by the LEDs, so AUX5 and AUX6 are not available as servos -->
             <define name="USE_PWM_TIM4" value="FALSE"/>
             <define name="USE_PWM5" value="FALSE"/>

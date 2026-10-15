@@ -94,6 +94,16 @@
 }
 
 /*
+ * For the buzzer (buzzer_tunes module)
+ * ALARM pin (TIM2_CH1), BUZZER pin 5 of the carrier board USB port
+ */
+#define BUZZER_GPIO         PAL_PORT(LINE_ALARM)
+#define BUZZER_PIN          PAL_PAD(LINE_ALARM)
+#define BUZZER_AF           1
+#define BUZZER_PWMD         PWMD2
+#define BUZZER_PWM_CHANNEL  0
+
+/*
  * IO pins assignments.
  */
 #define	PA00_UART4_TX                  0U
