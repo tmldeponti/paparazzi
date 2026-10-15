@@ -85,16 +85,7 @@ struct buzzer_note {
 
 #define TUNE_END {0, 0}
 
-/** Optional local file, not in git: custom RTTTL tunes (BUZZER_TUNES_RTTTL_1..3)
- *  and a full Super Mario (BUZZER_TUNES_SUPER_MARIO_LOCAL with tune_super_mario_local[])
- */
-#if defined(__has_include)
-#if __has_include("modules/sound/buzzer_tunes_custom.h")
-#include "modules/sound/buzzer_tunes_custom.h"
-#endif
-#endif
-
-/** Custom tunes (Custom 1..3) in RTTTL format ("name:d=4,o=6,b=120:c,e,g"), empty for none */
+/** Custom tunes (Custom 1..3) in RTTTL format ("name:d=4,o=6,b=120:c,e,g"), set in the airframe, empty for none */
 #ifndef BUZZER_TUNES_RTTTL_1
 #define BUZZER_TUNES_RTTTL_1 ""
 #endif
@@ -194,13 +185,38 @@ static const struct buzzer_note tune_happy_birthday[] = {
 };
 
 
-/** Super Mario Bros, opening riff only (a full version can be set in the local buzzer_tunes_custom.h) */
-#ifndef BUZZER_TUNES_SUPER_MARIO_LOCAL
-static const struct buzzer_note tune_super_mario[] = {
+/** Mushroom Song */
+static const struct buzzer_note tune_mushroom[] = {
   {E7, 150}, {E7, 150}, {REST, 150}, {E7, 150}, {REST, 150}, {C7, 150}, {E7, 150}, {REST, 150},
-  {G7, 300}, {REST, 300}, {G6, 300}, TUNE_END
+  {G7, 300}, {REST, 300}, {G6, 300}, {REST, 300}, {C7, 450}, {G6, 150}, {REST, 300}, {E6, 450},
+  {A6, 300}, {B6, 300}, {As6, 150}, {A6, 300}, {G6, 200}, {E7, 200}, {G7, 200}, {A7, 300},
+  {F7, 150}, {G7, 150}, {REST, 150}, {E7, 300}, {C7, 150}, {D7, 150}, {B6, 450}, {C7, 450},
+  {G6, 150}, {REST, 300}, {E6, 450}, {A6, 300}, {B6, 300}, {As6, 150}, {A6, 300}, {G6, 200},
+  {E7, 200}, {G7, 200}, {A7, 300}, {F7, 150}, {G7, 150}, {REST, 150}, {E7, 300}, {C7, 150},
+  {D7, 150}, {B6, 450}, {REST, 300}, {G7, 150}, {Fs7, 150}, {F7, 150}, {D7, 300}, {E7, 150},
+  {REST, 150}, {G6, 150}, {A6, 150}, {C7, 150}, {REST, 150}, {A6, 150}, {C7, 150}, {D7, 150},
+  {REST, 300}, {G7, 150}, {Fs7, 150}, {F7, 150}, {D7, 300}, {E7, 150}, {REST, 150}, {C5, 300},
+  {C5, 150}, {C5, 300}, {REST, 300}, {REST, 300}, {G7, 150}, {Fs7, 150}, {F7, 150}, {D7, 300},
+  {E7, 150}, {REST, 150}, {G6, 150}, {A6, 150}, {C7, 150}, {REST, 150}, {A6, 150}, {C7, 150},
+  {D7, 150}, {REST, 300}, {Ds7, 300}, {REST, 150}, {D7, 450}, {C7, 600}, {REST, 600}, {C7, 150},
+  {C7, 300}, {C7, 150}, {REST, 150}, {C7, 150}, {D7, 300}, {E7, 150}, {C7, 300}, {A6, 150},
+  {G6, 600}, {C7, 150}, {C7, 300}, {C7, 150}, {REST, 150}, {C7, 150}, {D7, 150}, {E7, 150},
+  {REST, 1200}, {C7, 150}, {C7, 300}, {C7, 150}, {REST, 150}, {C7, 150}, {D7, 300}, {E7, 150},
+  {C7, 300}, {A6, 150}, {G6, 600}, {E7, 150}, {E7, 150}, {REST, 150}, {E7, 150}, {REST, 150},
+  {C7, 150}, {E7, 300}, {G7, 300}, {REST, 300}, {G6, 300}, {REST, 300}, {C7, 450}, {G6, 150},
+  {REST, 300}, {E6, 450}, {A6, 300}, {B6, 300}, {As6, 150}, {A6, 300}, {G6, 200}, {E7, 200},
+  {G7, 200}, {A7, 300}, {F7, 150}, {G7, 150}, {REST, 150}, {E7, 300}, {C7, 150}, {D7, 150},
+  {B6, 450}, {C7, 450}, {G6, 150}, {REST, 300}, {E6, 450}, {A6, 300}, {B6, 300}, {As6, 150},
+  {A6, 300}, {G6, 200}, {E7, 200}, {G7, 200}, {A7, 300}, {F7, 150}, {G7, 150}, {REST, 150},
+  {E7, 300}, {C7, 150}, {D7, 150}, {B6, 450}, {E7, 150}, {C7, 300}, {G6, 150}, {REST, 300},
+  {G6, 300}, {A6, 150}, {F7, 300}, {F7, 150}, {A6, 600}, {B6, 200}, {A7, 200}, {A7, 200},
+  {A7, 200}, {G7, 200}, {F7, 200}, {E7, 150}, {C7, 300}, {A6, 150}, {G6, 600}, {E7, 150},
+  {C7, 300}, {G6, 150}, {REST, 300}, {G6, 300}, {A6, 150}, {F7, 300}, {F7, 150}, {A6, 600},
+  {B6, 150}, {F7, 300}, {F7, 150}, {F7, 200}, {E7, 200}, {D7, 200}, {C7, 150}, {G6, 300},
+  {E6, 150}, {C6, 600}, {C7, 450}, {G6, 450}, {E6, 300}, {A6, 200}, {B6, 200}, {A6, 200},
+  {Gs6, 200}, {As6, 200}, {Gs6, 200}, {G6, 150}, {Fs6, 150}, {G6, 900},
+  TUNE_END
 };
-#endif
 
 
 /** Tarrega, Gran Vals, the phrase known as the Nokia ringtone (public domain) */
@@ -246,11 +262,7 @@ static const struct buzzer_note *const buzzer_tunes_list[BUZZER_TUNES_CUSTOM_1] 
   [BUZZER_TUNES_ANTHEM_NETHERLANDS] = tune_anthem_netherlands,
   [BUZZER_TUNES_ANTHEM_FRANCE]      = tune_anthem_france,
   [BUZZER_TUNES_HAPPY_BIRTHDAY]     = tune_happy_birthday,
-#ifdef BUZZER_TUNES_SUPER_MARIO_LOCAL
-  [BUZZER_TUNES_SUPER_MARIO]        = tune_super_mario_local,
-#else
-  [BUZZER_TUNES_SUPER_MARIO]        = tune_super_mario,
-#endif
+  [BUZZER_TUNES_MUSHROOM]           = tune_mushroom,
   [BUZZER_TUNES_GRAN_VALS]          = tune_gran_vals,
   [BUZZER_TUNES_FUR_ELISE]          = tune_fur_elise,
   [BUZZER_TUNES_LA_CUCARACHA]       = tune_la_cucaracha,

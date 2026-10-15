@@ -13,12 +13,12 @@
     </description>
     <configure name="BUZZER_TIM" value="TIM2" description="Timer of the buzzer pin"/>
     <define name="BUZZER_TUNES_STARTUP_TUNE" value="BUZZER_TUNES_STARTUP" description="Tune at startup (BUZZER_TUNES_x), BUZZER_TUNES_NONE for silence"/>
-    <define name="BUZZER_TUNES_RTTTL_1" value="&quot;name:d=4,o=6,b=120:c,e,g&quot;" description="Custom tunes 1 to 3 in RTTTL format. Set them in an airframe section (type string), or in the local file sw/airborne/modules/sound/buzzer_tunes_custom.h"/>
+    <define name="BUZZER_TUNES_RTTTL_1" value="&quot;name:d=4,o=6,b=120:c,e,g&quot;" description="Custom tunes 1 to 3 (BUZZER_TUNES_RTTTL_1..3) in RTTTL format, set them in an airframe section with type string"/>
   </doc>
   <settings>
     <dl_settings>
       <dl_settings name="Buzzer">
-        <dl_setting var="buzzer_tunes_tune" min="0" max="15" step="1" values="Stop|Startup|Ode to Joy|Twinkle|Italy|Netherlands|France|Happy Birthday|Super Mario|Nokia|Fur Elise|La Cucaracha|William Tell|Custom 1|Custom 2|Custom 3" shortname="tune" type="uint8_t" module="sound/buzzer_tunes" handler="play"/>
+        <dl_setting var="buzzer_tunes_tune" min="0" max="15" step="1" values="Stop|Startup|Ode to Joy|Twinkle|Italy|Netherlands|France|Happy Birthday|Mushroom Song|Nokia|Fur Elise|La Cucaracha|William Tell|Custom 1|Custom 2|Custom 3" shortname="tune" type="uint8_t" module="sound/buzzer_tunes" handler="play"/>
       </dl_settings>
     </dl_settings>
   </settings>
