@@ -19,7 +19,7 @@
             </module>
             <module name="sys_mon"/>
             <module name="flight_recorder"/>
-            <!-- WS2812 LEDs: data on AUX5 (TIM4_CH2), 5V/GND from the GPS2 port -->
+            <!-- WS2812 LEDs: data on AUX6 (TIM4_CH3), 5V/GND from the second PM07 power connector -->
             <module name="light_scheduler">
                 <configure name="WS2812_TIM" value="TIM4"/>
                 <define name="WS2812_NB_LEDS" value="5"/>

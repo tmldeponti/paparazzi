@@ -1,7 +1,7 @@
 <!-- Bench test airframe for WS2812 LEDs, copy of PlusQuad_v3.xml
      * Autopilot:   Cube Orange (bench unit; PlusQuad_v3 itself uses Cube Orange+ LTS, same pin files)
      * Datalink:    USB (/dev/ttyACM0)
-     * LED data:    AUX5 signal pin, LED power from GPS2 port
+     * LED data:    AUX6 signal pin, LED power from GPS2 port
 -->
 
 <airframe name="PlusQuad_v3_leds">
@@ -17,7 +17,7 @@
             </module>
             <module name="sys_mon"/>
             <module name="flight_recorder"/>
-            <!-- WS2812 LEDs: data on AUX5 (TIM4_CH2), 5V/GND from the GPS2 port -->
+            <!-- WS2812 LEDs: data on AUX6 (TIM4_CH3), 5V/GND from the GPS2 port -->
             <module name="light_scheduler">
                 <configure name="WS2812_TIM" value="TIM4"/>
                 <define name="WS2812_NB_LEDS" value="5"/>
