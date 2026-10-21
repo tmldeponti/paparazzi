@@ -1054,6 +1054,10 @@ static void ekf_run(void)
     }
   }
 
+  // Keep the heading state in [-pi, pi] (it only enters the model through sin/cos):
+  // an ever growing float heading loses resolution after many turns
+  FLOAT_ANGLE_NORMALIZE(ekf_X[EKF_X_PSI]);
+
   // Export Results
   struct NedCoor_f ned_pos;
   ned_pos.x = ekf_X[EKF_X_POS_X];
