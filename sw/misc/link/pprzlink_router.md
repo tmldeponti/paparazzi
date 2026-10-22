@@ -72,7 +72,23 @@ adb install -r herelink_app/pprzlink_router.apk
 adb shell am broadcast -n org.paparazziuav.pprzlinkrouter/.BootReceiver -f 32   # once, after installing
 ```
 
-The laptop link itself (USB tethering or the hotspot) is enabled in the Herelink settings.
+The laptop link itself (USB tethering or the hotspot) is enabled in the Herelink settings. Android switches
+USB tethering off at every boot, so it has to be switched on again each session. These scripts do it over adb,
+then check the whole link. They never start a router (the app does that):
+
+| Script | What it does |
+|---|---|
+| `herelink_usb.sh` | Switches USB tethering on if needed, waits for the laptop's address, then runs the check |
+| `herelink_wifi.sh` | Same for the Wi-Fi hotspot (switching it on needs the USB cable for adb) |
+| `herelink_check.sh [usb\|wifi]` | Only checks: laptop address, ping, router and keep-awake on the handheld, link agent, telemetry |
+
+They end with `HEALTHY (usb)` or with `[FAIL]` lines that say what to do. Use `--wait SECONDS` when they
+start together with a Paparazzi session (default 20/15 s for the link agent and telemetry). They can be added
+as tools to a Paparazzi Center control panel, for example:
+
+```
+<program name="Herelink USB" command="sw/misc/link/herelink_usb.sh"/>
+```
 
 Paparazzi side: `link -udp` (it receives on port 4242 and answers to port 4243).
 
