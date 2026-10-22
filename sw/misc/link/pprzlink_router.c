@@ -27,6 +27,7 @@
 ./pprzlink_router_cc -e udp://192.168.0.11:5242:192.168.0.10:5243 -e udp://0.0.0.0:4243:192.168.43.255:4242
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>  
 #include <unistd.h>
 #include <getopt.h>
@@ -39,6 +40,9 @@
 #include <string.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <sched.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
 
 #define UDP_BUFFER_SIZE   1024
 #define MAX_ENDPOINTS     32
@@ -76,6 +80,7 @@ struct endpoint_t {
 };
 
 static bool verbose = false;
+static bool keep_awake = true;
 static struct endpoint_t endpoints[MAX_ENDPOINTS];
 
 void packet_handler(void *ep, uint8_t *data, uint16_t len);
@@ -347,6 +352,28 @@ void uart_create(char *devname, uint32_t baudrate) {
 }
 
 /**
+ * Keep the CPU awake
+ * The Herelink ground unit holds the forwarding for ~35 ms once per second when its CPU is idle.
+ * A busy thread at the lowest priority avoids this without delaying the other threads; letting it
+ * sleep part of the time (even 50%) does not help. It runs on CPU 0, a low power core on the Herelink.
+ */
+void *keep_awake_thread(void *arg __attribute__((unused))) {
+  pid_t tid = syscall(SYS_gettid);
+  setpriority(PRIO_PROCESS, tid, 19);
+
+  cpu_set_t cpus;
+  CPU_ZERO(&cpus);
+  CPU_SET(0, &cpus);
+  sched_setaffinity(tid, sizeof(cpus), &cpus);
+
+  volatile uint32_t counter = 0;
+  while(true) {
+    counter++;
+  }
+  return NULL;
+}
+
+/**
  * Handle incoming packets from server side
  */
 void packet_handler(void *ep, uint8_t *data, uint16_t len) {
@@ -385,6 +412,7 @@ int main(int argc, char** argv) {
     {"endpoint", required_argument, NULL, 'e'},
     {"help", no_argument, NULL, 'h'},
     {"verbose", no_argument, NULL, 'v'},
+    {"no-keep-awake", no_argument, NULL, 'n'},
     {0, 0, 0, 0}
   };
   static const char* usage =
@@ -392,11 +420,12 @@ int main(int argc, char** argv) {
     " Options :\n"
     "   -e --endpoint [endpoint_str]           Endpoint address to route to/from\n"
     "   -h --help                              Display this help\n"
-    "   -v --verbose                           Print verbose information\n";
+    "   -v --verbose                           Print verbose information\n"
+    "   -n --no-keep-awake                     Do not keep the CPU awake (see keep_awake_thread)\n";
   
   int c;
   int option_index = 0;
-  while((c = getopt_long(argc, argv, "e:hv", long_options, &option_index)) != -1) {  
+  while((c = getopt_long(argc, argv, "e:hvn", long_options, &option_index)) != -1) {  
     switch (c) {
       case 'e':
         // Parse the endpoint argument UDP
@@ -429,6 +458,10 @@ int main(int argc, char** argv) {
         verbose = true;
         break;
 
+      case 'n':
+        keep_awake = false;
+        break;
+
       case 'h':
         fprintf(stderr, usage, argv[0]);
         return 0;
@@ -438,6 +471,13 @@ int main(int argc, char** argv) {
         fprintf(stderr, usage, argv[0]);
         return 1;
     }
+  }
+
+  /* Start the keep awake thread */
+  if(keep_awake) {
+    pthread_t thread;
+    if(verbose) printf("Keeping the CPU awake\r\n");
+    pthread_create(&thread, NULL, keep_awake_thread, NULL);
   }
 
   while(true) {
